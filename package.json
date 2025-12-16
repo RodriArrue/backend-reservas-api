@@ -1,0 +1,37 @@
+{
+    "name": "sistemadereservas",
+    "version": "1.0.0",
+    "description": "API REST para la gestión de reservas de recursos (salas, escritorios, turnos).",
+    "main": "index.js",
+    "scripts": {
+        "start": "node src/index.js",
+        "dev": "nodemon src/index.js",
+        "db:sync": "node src/scripts/sync-db.js",
+        "db:sync:force": "node src/scripts/sync-db.js --force",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/RodriArrue/backend-reservas-api.git"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/RodriArrue/backend-reservas-api/issues"
+    },
+    "homepage": "https://github.com/RodriArrue/backend-reservas-api#readme",
+    "dependencies": {
+        "bcrypt": "^6.0.0",
+        "cors": "^2.8.5",
+        "dotenv": "^17.2.3",
+        "express": "^5.2.1",
+        "jsonwebtoken": "^9.0.3",
+        "pg": "^8.16.3",
+        "pg-hstore": "^2.3.4",
+        "sequelize": "^6.37.7"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.11"
+    }
+}
