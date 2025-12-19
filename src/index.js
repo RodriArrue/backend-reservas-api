@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { sequelize } = require('./models');
+const routes = require('./routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,9 +21,17 @@ app.get('/health', (req, res) => {
 app.get('/', (req, res) => {
     res.json({
         message: 'Sistema de Reservas API',
-        version: '1.0.0'
+        version: '1.0.0',
+        endpoints: {
+            users: '/api/users',
+            resources: '/api/resources',
+            reservations: '/api/reservations'
+        }
     });
 });
+
+// Rutas de la API
+app.use('/api', routes);
 
 // Iniciar servidor
 async function startServer() {
