@@ -1,4 +1,4 @@
-const { ReservationService } = require('../services');
+const { ReservationService, ReservationServiceError } = require('../services');
 
 class ReservationController {
     async create(req, res) {
@@ -10,12 +10,16 @@ class ReservationController {
                 message: 'Reserva creada exitosamente'
             });
         } catch (error) {
-            if (error.message === 'El recurso ya está reservado en ese horario') {
-                return res.status(409).json({
+            if (error instanceof ReservationServiceError) {
+                const statusCode = error.code === 'RESOURCE_NOT_FOUND' ? 404 :
+                    error.code === 'SCHEDULE_CONFLICT' ? 409 : 400;
+                return res.status(statusCode).json({
                     success: false,
-                    error: error.message
+                    error: error.message,
+                    code: error.code
                 });
             }
+            console.error('Error al crear reserva:', error);
             res.status(500).json({
                 success: false,
                 error: 'Error al crear reserva'
@@ -122,12 +126,15 @@ class ReservationController {
                 message: 'Reserva actualizada exitosamente'
             });
         } catch (error) {
-            if (error.message === 'El recurso ya está reservado en ese horario') {
-                return res.status(409).json({
+            if (error instanceof ReservationServiceError) {
+                const statusCode = error.code === 'SCHEDULE_CONFLICT' ? 409 : 400;
+                return res.status(statusCode).json({
                     success: false,
-                    error: error.message
+                    error: error.message,
+                    code: error.code
                 });
             }
+            console.error('Error al actualizar reserva:', error);
             res.status(500).json({
                 success: false,
                 error: 'Error al actualizar reserva'
@@ -158,7 +165,11 @@ class ReservationController {
 
     async cancel(req, res) {
         try {
-            const reservation = await ReservationService.cancel(req.params.id);
+            const reservation = await ReservationService.cancel(
+                req.params.id,
+                req.user.id,
+                req.user.rol
+            );
             if (!reservation) {
                 return res.status(404).json({
                     success: false,
@@ -171,6 +182,15 @@ class ReservationController {
                 message: 'Reserva cancelada exitosamente'
             });
         } catch (error) {
+            if (error instanceof ReservationServiceError) {
+                const statusCode = error.code === 'FORBIDDEN' ? 403 : 400;
+                return res.status(statusCode).json({
+                    success: false,
+                    error: error.message,
+                    code: error.code
+                });
+            }
+            console.error('Error al cancelar reserva:', error);
             res.status(500).json({
                 success: false,
                 error: 'Error al cancelar reserva'
@@ -193,6 +213,14 @@ class ReservationController {
                 message: 'Reserva confirmada exitosamente'
             });
         } catch (error) {
+            if (error instanceof ReservationServiceError) {
+                return res.status(400).json({
+                    success: false,
+                    error: error.message,
+                    code: error.code
+                });
+            }
+            console.error('Error al confirmar reserva:', error);
             res.status(500).json({
                 success: false,
                 error: 'Error al confirmar reserva'
