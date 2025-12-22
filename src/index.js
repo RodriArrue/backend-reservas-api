@@ -1,16 +1,22 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const { sequelize } = require('./models');
 const routes = require('./routes');
+const { globalLimiter } = require('./middlewares');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
+// Middlewares de seguridad
+app.use(helmet()); // Headers de seguridad HTTP
+app.use(globalLimiter); // Rate limiting global
+
+// Middlewares de parsing
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10kb' })); // Limitar tamaño de body
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // Ruta de health check
 app.get('/health', (req, res) => {
