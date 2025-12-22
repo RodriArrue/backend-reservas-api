@@ -1,21 +1,22 @@
 const express = require('express');
 const router = express.Router();
 const AuthController = require('../controllers/AuthController');
-const { authMiddleware } = require('../middlewares');
+const { authMiddleware, authLimiter } = require('../middlewares');
+const { registerRules, loginRules, validate } = require('../validators');
 
 /**
  * @route   POST /api/auth/register
  * @desc    Registrar un nuevo usuario
- * @access  Público
+ * @access  Público (con rate limiting)
  */
-router.post('/register', AuthController.register);
+router.post('/register', authLimiter, registerRules, validate, AuthController.register);
 
 /**
  * @route   POST /api/auth/login
  * @desc    Login de usuario
- * @access  Público
+ * @access  Público (con rate limiting)
  */
-router.post('/login', AuthController.login);
+router.post('/login', authLimiter, loginRules, validate, AuthController.login);
 
 /**
  * @route   GET /api/auth/me
