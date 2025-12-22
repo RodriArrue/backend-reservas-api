@@ -1,6 +1,20 @@
 const { Reservation, User, Resource } = require('../models');
 const { Op } = require('sequelize');
 
+/**
+ * Clase de error personalizada para el servicio de reservas
+ */
+class ReservationServiceError extends Error {
+    constructor(message, code) {
+        super(message);
+        this.code = code;
+        this.name = 'ReservationServiceError';
+    }
+}
+
+// Configuración de tiempo mínimo de cancelación (en horas)
+const MIN_CANCELLATION_HOURS = 2;
+
 class ReservationService {
     /**
      * Crear una nueva reserva
@@ -8,6 +22,15 @@ class ReservationService {
      * @returns {Promise<Reservation>}
      */
     async create(reservationData) {
+        // Verificar que el recurso existe y está activo
+        const resource = await Resource.findByPk(reservationData.resource_id);
+        if (!resource) {
+            throw new ReservationServiceError('Recurso no encontrado', 'RESOURCE_NOT_FOUND');
+        }
+        if (!resource.activo) {
+            throw new ReservationServiceError('El recurso no está disponible', 'RESOURCE_INACTIVE');
+        }
+
         // Verificar que no hay conflictos de horario
         const hasConflict = await this.checkConflict(
             reservationData.resource_id,
@@ -16,7 +39,7 @@ class ReservationService {
         );
 
         if (hasConflict) {
-            throw new Error('El recurso ya está reservado en ese horario');
+            throw new ReservationServiceError('El recurso ya está reservado en ese horario', 'SCHEDULE_CONFLICT');
         }
 
         const reservation = await Reservation.create(reservationData);
@@ -216,6 +239,14 @@ class ReservationService {
             return null;
         }
 
+        // No permitir modificar reservas canceladas (excepto para el status change interno)
+        if (reservation.status === 'CANCELLED' && !updateData._internalStatusChange) {
+            throw new ReservationServiceError(
+                'No se puede modificar una reserva cancelada',
+                'CANNOT_MODIFY_CANCELLED'
+            );
+        }
+
         // Si se están cambiando los tiempos, verificar conflictos
         if (updateData.start_time || updateData.end_time) {
             const startTime = updateData.start_time || reservation.start_time;
@@ -225,9 +256,15 @@ class ReservationService {
             const hasConflict = await this.checkConflict(resourceId, startTime, endTime, id);
 
             if (hasConflict) {
-                throw new Error('El recurso ya está reservado en ese horario');
+                throw new ReservationServiceError(
+                    'El recurso ya está reservado en ese horario',
+                    'SCHEDULE_CONFLICT'
+                );
             }
         }
+
+        // Limpiar flag interno antes de actualizar
+        delete updateData._internalStatusChange;
 
         await reservation.update(updateData);
         return this.findById(id);
@@ -250,21 +287,78 @@ class ReservationService {
     }
 
     /**
-     * Cancelar una reserva
+     * Cancelar una reserva con validaciones de negocio
      * @param {string} id - ID de la reserva
+     * @param {string} userId - ID del usuario que cancela
+     * @param {string} userRole - Rol del usuario (ADMIN/USER)
      * @returns {Promise<Reservation|null>}
      */
-    async cancel(id) {
-        return this.update(id, { status: 'CANCELLED' });
+    async cancel(id, userId, userRole) {
+        const reservation = await Reservation.findByPk(id);
+
+        if (!reservation) {
+            return null;
+        }
+
+        // No se puede cancelar si ya está cancelada
+        if (reservation.status === 'CANCELLED') {
+            throw new ReservationServiceError(
+                'La reserva ya está cancelada',
+                'ALREADY_CANCELLED'
+            );
+        }
+
+        // Solo el dueño o ADMIN puede cancelar
+        if (reservation.user_id !== userId && userRole !== 'ADMIN') {
+            throw new ReservationServiceError(
+                'No tienes permiso para cancelar esta reserva',
+                'FORBIDDEN'
+            );
+        }
+
+        // No se puede cancelar si ya pasó
+        const now = new Date();
+        if (new Date(reservation.start_time) < now) {
+            throw new ReservationServiceError(
+                'No se puede cancelar una reserva que ya comenzó o pasó',
+                'RESERVATION_PAST'
+            );
+        }
+
+        // Tiempo mínimo de anticipación
+        const minCancelTime = new Date(reservation.start_time);
+        minCancelTime.setHours(minCancelTime.getHours() - MIN_CANCELLATION_HOURS);
+        if (now > minCancelTime) {
+            throw new ReservationServiceError(
+                `Debes cancelar con al menos ${MIN_CANCELLATION_HOURS} horas de anticipación`,
+                'CANCELLATION_TOO_LATE'
+            );
+        }
+
+        return this.update(id, { status: 'CANCELLED', _internalStatusChange: true });
     }
 
     /**
-     * Confirmar una reserva
+     * Confirmar una reserva (solo desde PENDING)
      * @param {string} id - ID de la reserva
      * @returns {Promise<Reservation|null>}
      */
     async confirm(id) {
-        return this.update(id, { status: 'CONFIRMED' });
+        const reservation = await Reservation.findByPk(id);
+
+        if (!reservation) {
+            return null;
+        }
+
+        // Solo se pueden confirmar reservas PENDING
+        if (reservation.status !== 'PENDING') {
+            throw new ReservationServiceError(
+                `Solo se pueden confirmar reservas en estado PENDING. Estado actual: ${reservation.status}`,
+                'INVALID_STATE_TRANSITION'
+            );
+        }
+
+        return this.update(id, { status: 'CONFIRMED', _internalStatusChange: true });
     }
 
     /**
@@ -365,4 +459,7 @@ class ReservationService {
     }
 }
 
-module.exports = new ReservationService();
+module.exports = {
+    ReservationService: new ReservationService(),
+    ReservationServiceError
+};

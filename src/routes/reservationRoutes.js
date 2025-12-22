@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { ReservationController } = require('../controllers');
+const authMiddleware = require('../middlewares/authMiddleware');
 
 /**
  * @route   POST /api/reservations
- * @desc    Crear una nueva reserva
+ * @desc    Crear una nueva reserva (requiere autenticación)
  */
-router.post('/', ReservationController.create);
+router.post('/', authMiddleware, ReservationController.create);
 
 /**
  * @route   GET /api/reservations
@@ -51,32 +52,33 @@ router.get('/:id', ReservationController.findById);
 
 /**
  * @route   PUT /api/reservations/:id
- * @desc    Actualizar una reserva
+ * @desc    Actualizar una reserva (requiere autenticación)
  */
-router.put('/:id', ReservationController.update);
+router.put('/:id', authMiddleware, ReservationController.update);
 
 /**
  * @route   DELETE /api/reservations/:id
- * @desc    Eliminar una reserva (soft delete)
+ * @desc    Eliminar una reserva (soft delete, requiere autenticación)
  */
-router.delete('/:id', ReservationController.delete);
+router.delete('/:id', authMiddleware, ReservationController.delete);
 
 /**
  * @route   POST /api/reservations/:id/cancel
- * @desc    Cancelar una reserva
+ * @desc    Cancelar una reserva (requiere autenticación, solo dueño o ADMIN)
  */
-router.post('/:id/cancel', ReservationController.cancel);
+router.post('/:id/cancel', authMiddleware, ReservationController.cancel);
 
 /**
  * @route   POST /api/reservations/:id/confirm
- * @desc    Confirmar una reserva
+ * @desc    Confirmar una reserva (requiere autenticación)
  */
-router.post('/:id/confirm', ReservationController.confirm);
+router.post('/:id/confirm', authMiddleware, ReservationController.confirm);
 
 /**
  * @route   POST /api/reservations/:id/restore
- * @desc    Restaurar una reserva eliminada
+ * @desc    Restaurar una reserva eliminada (requiere autenticación)
  */
-router.post('/:id/restore', ReservationController.restore);
+router.post('/:id/restore', authMiddleware, ReservationController.restore);
 
 module.exports = router;
+
