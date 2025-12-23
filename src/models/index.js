@@ -22,12 +22,14 @@ const sequelize = new Sequelize(
 const User = require('./User')(sequelize);
 const Resource = require('./Resource')(sequelize);
 const Reservation = require('./Reservation')(sequelize);
+const AuditLog = require('./AuditLog')(sequelize);
 
 // Objeto con todos los modelos
 const models = {
     User,
     Resource,
-    Reservation
+    Reservation,
+    AuditLog
 };
 
 // Ejecutar asociaciones
