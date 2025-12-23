@@ -2,9 +2,11 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const hpp = require('hpp');
 const { sequelize } = require('./models');
 const routes = require('./routes');
 const { globalLimiter } = require('./middlewares');
+const { xssSanitizer, noSqlSanitizer } = require('./middlewares/sanitizerMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,6 +19,11 @@ app.use(globalLimiter); // Rate limiting global
 app.use(cors());
 app.use(express.json({ limit: '10kb' })); // Limitar tamaño de body
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+// Sanitización y protección adicional
+app.use(hpp()); // Prevenir HTTP Parameter Pollution
+app.use(xssSanitizer); // Sanitizar XSS en body, query, params
+app.use(noSqlSanitizer); // Prevenir NoSQL injection
 
 // Ruta de health check
 app.get('/health', (req, res) => {
