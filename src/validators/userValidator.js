@@ -5,6 +5,11 @@
 const { body, param } = require('express-validator');
 
 /**
+ * Mensaje detallado de requisitos de contraseña
+ */
+const PASSWORD_REQUIREMENTS = 'La contraseña debe tener: mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 1 número y 1 símbolo (@$!%*?&#)';
+
+/**
  * Reglas para registro de usuario
  */
 const registerRules = [
@@ -22,8 +27,11 @@ const registerRules = [
 
     body('password')
         .notEmpty().withMessage('La contraseña es requerida')
-        .isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres')
-        .matches(/\d/).withMessage('La contraseña debe contener al menos un número'),
+        .isLength({ min: 8 }).withMessage('La contraseña debe tener al menos 8 caracteres')
+        .matches(/[A-Z]/).withMessage('La contraseña debe contener al menos una mayúscula')
+        .matches(/[a-z]/).withMessage('La contraseña debe contener al menos una minúscula')
+        .matches(/[0-9]/).withMessage('La contraseña debe contener al menos un número')
+        .matches(/[@$!%*?&#]/).withMessage('La contraseña debe contener al menos un símbolo (@$!%*?&#)'),
 
     body('rol')
         .optional()

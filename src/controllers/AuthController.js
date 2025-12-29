@@ -1,35 +1,40 @@
-const { AuthService, AuthServiceError, AUTH_ERROR_CODES } = require('../services/AuthService');
+const { AuthService, AuthServiceError, AUTH_ERROR_CODES, CONFIG } = require('../services/AuthService');
 const { UserServiceError, ERROR_CODES } = require('../services/UserService');
+const { AuditService } = require('../services');
 
 class AuthController {
+    /**
+     * Helper para obtener info del request
+     */
+    getRequestInfo(req) {
+        return {
+            ip: req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || req.ip,
+            userAgent: req.headers['user-agent']
+        };
+    }
+
     /**
      * POST /api/auth/register
      * Registrar un nuevo usuario
      */
     async register(req, res) {
         try {
-            const { nombre, email, password } = req.body;
+            const { nombre, email, password, rol } = req.body;
+            const requestInfo = this.getRequestInfo(req);
 
-            // Validaciones básicas
-            if (!nombre || !email || !password) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Nombre, email y password son requeridos'
-                });
-            }
+            const result = await AuthService.register({ nombre, email, password, rol }, requestInfo);
 
-            if (password.length < 6) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'La contraseña debe tener al menos 6 caracteres'
-                });
-            }
-
-            const result = await AuthService.register({ nombre, email, password });
+            // Log de auditoría
+            await AuditService.logCreate(result.user.id, 'USER', result.user.id, { nombre, email, rol }, req);
 
             res.status(201).json({
                 success: true,
-                data: result,
+                data: {
+                    user: result.user,
+                    accessToken: result.accessToken,
+                    refreshToken: result.refreshToken,
+                    expiresAt: result.expiresAt
+                },
                 message: 'Usuario registrado exitosamente'
             });
         } catch (error) {
@@ -56,23 +61,29 @@ class AuthController {
     async login(req, res) {
         try {
             const { email, password } = req.body;
+            const requestInfo = this.getRequestInfo(req);
 
-            // Validaciones básicas
-            if (!email || !password) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Email y password son requeridos'
-                });
-            }
+            const result = await AuthService.login(email, password, requestInfo);
 
-            const result = await AuthService.login(email, password);
+            // Log de auditoría
+            await AuditService.logLogin(result.user.id, req);
 
             res.json({
                 success: true,
-                data: result,
+                data: {
+                    user: result.user,
+                    accessToken: result.accessToken,
+                    refreshToken: result.refreshToken,
+                    expiresAt: result.expiresAt
+                },
                 message: 'Login exitoso'
             });
         } catch (error) {
+            // Log de intento fallido
+            if (error.code === ERROR_CODES.INVALID_CREDENTIALS) {
+                await AuditService.logLoginFailed(req.body.email, req, error.message);
+            }
+
             if (error instanceof UserServiceError && error.code === ERROR_CODES.INVALID_CREDENTIALS) {
                 return res.status(401).json({
                     success: false,
@@ -80,8 +91,9 @@ class AuthController {
                     code: error.code
                 });
             }
-            if (error instanceof AuthServiceError && error.code === AUTH_ERROR_CODES.USER_INACTIVE) {
-                return res.status(403).json({
+            if (error instanceof AuthServiceError) {
+                const statusCode = error.code === AUTH_ERROR_CODES.ACCOUNT_LOCKED ? 423 : 403;
+                return res.status(statusCode).json({
                     success: false,
                     error: error.message,
                     code: error.code
@@ -96,12 +108,104 @@ class AuthController {
     }
 
     /**
+     * POST /api/auth/refresh
+     * Refrescar access token usando refresh token
+     */
+    async refresh(req, res) {
+        try {
+            const { refreshToken } = req.body;
+
+            if (!refreshToken) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Refresh token requerido',
+                    code: 'REFRESH_TOKEN_MISSING'
+                });
+            }
+
+            const requestInfo = this.getRequestInfo(req);
+            const result = await AuthService.refresh(refreshToken, requestInfo);
+
+            res.json({
+                success: true,
+                data: {
+                    accessToken: result.accessToken,
+                    refreshToken: result.refreshToken,
+                    expiresAt: result.expiresAt
+                },
+                message: 'Token refrescado exitosamente'
+            });
+        } catch (error) {
+            if (error instanceof AuthServiceError) {
+                const statusCode =
+                    error.code === AUTH_ERROR_CODES.REFRESH_TOKEN_EXPIRED ? 401 :
+                        error.code === AUTH_ERROR_CODES.REFRESH_TOKEN_REVOKED ? 401 : 400;
+                return res.status(statusCode).json({
+                    success: false,
+                    error: error.message,
+                    code: error.code
+                });
+            }
+            console.error('Error en refresh:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Error interno del servidor'
+            });
+        }
+    }
+
+    /**
+     * POST /api/auth/logout
+     * Cerrar sesión actual
+     */
+    async logout(req, res) {
+        try {
+            const authHeader = req.headers.authorization;
+            const accessToken = authHeader?.split(' ')[1];
+            const { refreshToken } = req.body;
+
+            await AuthService.logout(accessToken, refreshToken);
+
+            res.json({
+                success: true,
+                message: 'Sesión cerrada exitosamente'
+            });
+        } catch (error) {
+            console.error('Error en logout:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Error interno del servidor'
+            });
+        }
+    }
+
+    /**
+     * POST /api/auth/logout-all
+     * Cerrar todas las sesiones del usuario
+     */
+    async logoutAll(req, res) {
+        try {
+            await AuthService.logoutAll(req.user.id);
+
+            res.json({
+                success: true,
+                message: 'Todas las sesiones han sido cerradas'
+            });
+        } catch (error) {
+            console.error('Error en logout-all:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Error interno del servidor'
+            });
+        }
+    }
+
+    /**
      * GET /api/auth/me
      * Obtener perfil del usuario autenticado
      */
     async me(req, res) {
         try {
-            // req.user es adjuntado por el middleware de autenticación
             res.json({
                 success: true,
                 data: req.user
