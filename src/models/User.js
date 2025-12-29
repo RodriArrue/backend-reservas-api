@@ -42,6 +42,25 @@ module.exports = (sequelize) => {
             defaultValue: true,
             allowNull: false
         },
+        // Account lockout fields
+        failed_login_attempts: {
+            type: DataTypes.INTEGER,
+            defaultValue: 0,
+            allowNull: false
+        },
+        locked_until: {
+            type: DataTypes.DATE,
+            allowNull: true
+        },
+        last_login: {
+            type: DataTypes.DATE,
+            allowNull: true
+        },
+        // Fecha del último cambio de contraseña (para forzar re-login)
+        password_changed_at: {
+            type: DataTypes.DATE,
+            allowNull: true
+        },
         deletedAt: {
             type: DataTypes.DATE,
             allowNull: true
