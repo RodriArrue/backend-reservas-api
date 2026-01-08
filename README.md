@@ -457,18 +457,6 @@ src/
 
 ---
 
-## 🤝 Contribuir
-
-Las contribuciones son bienvenidas. Por favor:
-
-1. Haz fork del proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/NuevaFuncionalidad`)
-3. Commit tus cambios (`git commit -m 'Add: Nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/NuevaFuncionalidad`)
-5. Abre un Pull Request
-
----
-
 ## 👨‍💻 Autor
 
 **Rodrigo Arrue**
@@ -476,13 +464,3 @@ Las contribuciones son bienvenidas. Por favor:
 - GitHub: [@RodriArrue](https://github.com/RodriArrue)
 
 ---
-
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia ISC. Ver el archivo [LICENSE](LICENSE) para más detalles.
-
----
-
-<p align="center">
-  <strong>⭐ Si este proyecto te fue útil, no olvides darle una estrella en GitHub ⭐</strong>
-</p>
