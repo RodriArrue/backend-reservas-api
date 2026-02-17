@@ -297,14 +297,15 @@ curl -X POST http://localhost:3000/api/reservations \
 
 | Método | Endpoint | Descripción | Autenticación |
 |--------|----------|-------------|---------------|
-| `GET` | `/` | Listar usuarios | ❌ Público |
-| `GET` | `/:id` | Obtener usuario por ID | ❌ Público |
-| `POST` | `/` | Crear usuario | ❌ Público |
-| `PUT` | `/:id` | Actualizar usuario | ❌ Público |
-| `DELETE` | `/:id` | Eliminar usuario (soft) | ❌ Público |
-| `POST` | `/:id/restore` | Restaurar usuario | ❌ Público |
-| `PATCH` | `/:id/toggle-active` | Activar/Desactivar | ❌ Público |
-| `PATCH` | `/:id/change-role` | Cambiar rol | ❌ Público |
+| `GET` | `/` | Listar usuarios | ✅ Requerido |
+| `GET` | `/:id` | Obtener usuario por ID | ✅ Requerido |
+| `POST` | `/` | Crear usuario | ✅ ADMIN + CSRF |
+| `PUT` | `/:id` | Actualizar usuario | ✅ ADMIN + CSRF |
+| `DELETE` | `/:id` | Eliminar usuario (soft) | ✅ ADMIN + CSRF |
+| `POST` | `/:id/restore` | Restaurar usuario | ✅ ADMIN + CSRF |
+| `POST` | `/login` | Login (deprecado) | ❌ Público |
+| `PATCH` | `/:id/toggle-active` | Activar/Desactivar | ✅ ADMIN + CSRF |
+| `PATCH` | `/:id/change-role` | Cambiar rol | ✅ ADMIN + CSRF |
 
 ### Recursos (`/api/resources`)
 
