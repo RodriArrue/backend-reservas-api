@@ -3,6 +3,9 @@
     "version": "1.0.0",
     "description": "API REST para la gestión de reservas de recursos (salas, escritorios, turnos).",
     "main": "index.js",
+    "engines": {
+        "node": ">=18.0.0"
+    },
     "scripts": {
         "start": "node src/index.js",
         "dev": "nodemon src/index.js",
@@ -20,7 +23,11 @@
         "test:coverage": "jest --coverage",
         "test:unit": "jest tests/unit",
         "test:integration": "jest tests/integration",
-        "test:verbose": "jest --verbose"
+        "test:verbose": "jest --verbose",
+        "lint": "eslint src/ tests/",
+        "lint:fix": "eslint src/ tests/ --fix",
+        "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\"",
+        "format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.js\""
     },
     "repository": {
         "type": "git",
@@ -49,8 +56,12 @@
         "xss-clean": "^0.1.4"
     },
     "devDependencies": {
+        "eslint": "^8.57.1",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-node": "^11.1.0",
         "jest": "^30.2.0",
         "nodemon": "^3.1.11",
+        "prettier": "^3.8.1",
         "sequelize-cli": "^6.6.5",
         "supertest": "^7.1.4"
     }

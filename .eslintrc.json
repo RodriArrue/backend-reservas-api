@@ -1,0 +1,89 @@
+{
+    "env": {
+        "node": true,
+        "es2021": true,
+        "jest": true
+    },
+    "extends": [
+        "eslint:recommended",
+        "plugin:node/recommended",
+        "prettier"
+    ],
+    "parserOptions": {
+        "ecmaVersion": 2022
+    },
+    "settings": {
+        "node": {
+            "version": ">=18.0.0"
+        }
+    },
+    "rules": {
+        "no-console": "warn",
+        "no-unused-vars": [
+            "warn",
+            {
+                "argsIgnorePattern": "^_",
+                "varsIgnorePattern": "^_"
+            }
+        ],
+        "no-process-exit": "off",
+        "node/no-unpublished-require": [
+            "error",
+            {
+                "allowModules": [
+                    "supertest"
+                ]
+            }
+        ],
+        "node/no-extraneous-require": [
+            "error",
+            {
+                "allowModules": [
+                    "uuid"
+                ]
+            }
+        ],
+        "node/no-missing-require": "error",
+        "no-var": "error",
+        "prefer-const": "warn",
+        "eqeqeq": [
+            "error",
+            "always"
+        ],
+        "curly": [
+            "error",
+            "multi-line"
+        ],
+        "no-throw-literal": "error",
+        "no-return-await": "warn",
+        "require-await": "warn",
+        "no-async-promise-executor": "error",
+        "no-promise-executor-return": "warn",
+        "prefer-promise-reject-errors": "error"
+    },
+    "overrides": [
+        {
+            "files": [
+                "tests/**/*.js"
+            ],
+            "rules": {
+                "no-console": "off",
+                "node/no-unpublished-require": "off"
+            }
+        },
+        {
+            "files": [
+                "src/database/migrations/*.js",
+                "src/database/seeders/*.js"
+            ],
+            "rules": {
+                "no-unused-vars": [
+                    "warn",
+                    {
+                        "argsIgnorePattern": "^_|queryInterface|Sequelize"
+                    }
+                ]
+            }
+        }
+    ]
+}
