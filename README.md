@@ -140,17 +140,33 @@ cp .env.example .env
 nano .env
 ```
 
-### 5. Sincronizar la Base de Datos
+### 5. Ejecutar Migraciones
 
 ```bash
-# Crea las tablas (primera vez)
-npm run db:sync
+# Crear todas las tablas con migraciones
+npm run migrate
 
-# O forzar recreación (⚠️ borra datos existentes)
-npm run db:sync:force
+# Ver estado de las migraciones
+npm run migrate:status
 ```
 
-### 6. Iniciar el Servidor
+### 6. Cargar Datos de Ejemplo
+
+```bash
+# Insertar datos de prueba (usuarios, recursos, reservas)
+npm run seed
+```
+
+> **Credenciales de prueba creadas:**
+> | Rol | Email | Contraseña |
+> |-----|-------|------------|
+> | ADMIN | `admin@reservas.com` | `Admin123!` |
+> | USER | `maria.garcia@ejemplo.com` | `User123!` |
+
+> [!TIP]
+> Para resetear todo de una vez (migraciones + seeds): `npm run db:reset`
+
+### 7. Iniciar el Servidor
 
 ```bash
 # Modo desarrollo (con hot-reload)
@@ -194,12 +210,17 @@ REFRESH_TOKEN_SECRET=otro_secreto_para_refresh_tokens
 |---------|-------------|
 | `npm start` | Inicia el servidor en producción |
 | `npm run dev` | Inicia con nodemon (hot-reload) |
+| `npm run migrate` | Ejecuta migraciones pendientes |
+| `npm run migrate:undo` | Revierte la última migración |
+| `npm run migrate:undo:all` | Revierte todas las migraciones |
+| `npm run migrate:status` | Estado de las migraciones |
+| `npm run seed` | Carga datos de ejemplo |
+| `npm run seed:undo` | Elimina datos de ejemplo |
+| `npm run db:reset` | Resetea DB completa (migrate + seed) |
 | `npm test` | Ejecuta todos los tests |
 | `npm run test:unit` | Solo tests unitarios |
 | `npm run test:integration` | Solo tests de integración |
 | `npm run test:coverage` | Tests con reporte de cobertura |
-| `npm run db:sync` | Sincroniza modelos con la DB |
-| `npm run db:sync:force` | Recrea tablas (borra datos) |
 
 ---
 
@@ -426,6 +447,18 @@ src/
 │   ├── ReservationController.js
 │   ├── ResourceController.js
 │   └── UserController.js
+├── database/          # Migraciones y datos de ejemplo
+│   ├── migrations/    # Migraciones Sequelize CLI
+│   │   ├── 01-create-users.js
+│   │   ├── 02-create-resources.js
+│   │   ├── 03-create-reservations.js
+│   │   ├── 04-create-audit-logs.js
+│   │   ├── 05-create-refresh-tokens.js
+│   │   └── 06-create-token-blacklist.js
+│   └── seeders/       # Datos de ejemplo
+│       ├── 01-demo-users.js
+│       ├── 02-demo-resources.js
+│       └── 03-demo-reservations.js
 ├── middlewares/       # Middlewares Express
 │   ├── authMiddleware.js
 │   ├── csrfMiddleware.js

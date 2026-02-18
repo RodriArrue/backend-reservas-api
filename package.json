@@ -6,6 +6,13 @@
     "scripts": {
         "start": "node src/index.js",
         "dev": "nodemon src/index.js",
+        "migrate": "npx sequelize-cli db:migrate",
+        "migrate:undo": "npx sequelize-cli db:migrate:undo",
+        "migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
+        "migrate:status": "npx sequelize-cli db:migrate:status",
+        "seed": "npx sequelize-cli db:seed:all",
+        "seed:undo": "npx sequelize-cli db:seed:undo:all",
+        "db:reset": "npx sequelize-cli db:migrate:undo:all && npx sequelize-cli db:migrate && npx sequelize-cli db:seed:all",
         "db:sync": "node src/scripts/sync-db.js",
         "db:sync:force": "node src/scripts/sync-db.js --force",
         "test": "jest",
@@ -44,6 +51,7 @@
     "devDependencies": {
         "jest": "^30.2.0",
         "nodemon": "^3.1.11",
+        "sequelize-cli": "^6.6.5",
         "supertest": "^7.1.4"
     }
 }
