@@ -14,7 +14,8 @@ const { globalLimiter } = require('./middlewares');
 const { xssSanitizer, noSqlSanitizer } = require('./middlewares/sanitizerMiddleware');
 const errorHandler = require('./middlewares/errorHandler');
 const { NotFoundError } = require('./utils/errors');
-const logger = require('./utils/logger');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 
 const app = express();
 
@@ -50,6 +51,21 @@ app.get('/', (req, res) => {
             reservations: '/api/reservations'
         }
     });
+});
+
+// Documentación Swagger
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'Sistema de Reservas - API Docs',
+    customCss: '.swagger-ui .topbar { display: none }',
+    swaggerOptions: {
+        persistAuthorization: true
+    }
+}));
+
+// Endpoint para obtener el JSON de la especificación
+app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
 });
 
 // Rutas de la API
