@@ -1,292 +1,155 @@
-const { ReservationService, ReservationServiceError } = require('../services');
-const logger = require('../utils/logger');
+const { ReservationService } = require('../services');
+const catchAsync = require('../utils/catchAsync');
+const { NotFoundError } = require('../utils/errors');
 
 class ReservationController {
-    async create(req, res) {
-        try {
-            const reservation = await ReservationService.create(req.body);
-            res.status(201).json({
-                success: true,
-                data: reservation,
-                message: 'Reserva creada exitosamente'
-            });
-        } catch (error) {
-            if (error instanceof ReservationServiceError) {
-                const statusCode = error.code === 'RESOURCE_NOT_FOUND' ? 404 :
-                    error.code === 'SCHEDULE_CONFLICT' ? 409 : 400;
-                return res.status(statusCode).json({
-                    success: false,
-                    error: error.message,
-                    code: error.code
-                });
-            }
-            logger.error('Error al crear reserva:', error);
-            res.status(500).json({
-                success: false,
-                error: 'Error al crear reserva'
-            });
-        }
-    }
+    create = catchAsync(async (req, res) => {
+        const reservation = await ReservationService.create(req.body);
+        res.status(201).json({
+            success: true,
+            data: reservation,
+            message: 'Reserva creada exitosamente'
+        });
+    });
 
-    async findAll(req, res) {
-        try {
-            const { page, limit, userId, resourceId, status, startDate, endDate } = req.query;
-            const result = await ReservationService.findAll({
-                page: parseInt(page) || 1,
-                limit: parseInt(limit) || 10,
-                userId,
-                resourceId,
-                status,
-                startDate: startDate ? new Date(startDate) : undefined,
-                endDate: endDate ? new Date(endDate) : undefined
-            });
-            res.json({
-                success: true,
-                data: result
-            });
-        } catch (error) {
-            res.status(500).json({
-                success: false,
-                error: 'Error al obtener reservas'
-            });
-        }
-    }
+    findAll = catchAsync(async (req, res) => {
+        const { page, limit, userId, resourceId, status, startDate, endDate } = req.query;
+        const result = await ReservationService.findAll({
+            page: parseInt(page) || 1,
+            limit: parseInt(limit) || 10,
+            userId,
+            resourceId,
+            status,
+            startDate: startDate ? new Date(startDate) : undefined,
+            endDate: endDate ? new Date(endDate) : undefined
+        });
+        res.json({
+            success: true,
+            data: result
+        });
+    });
 
-    async findById(req, res) {
-        try {
-            const reservation = await ReservationService.findById(req.params.id);
-            if (!reservation) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Reserva no encontrada'
-                });
-            }
-            res.json({
-                success: true,
-                data: reservation
-            });
-        } catch (error) {
-            res.status(500).json({
-                success: false,
-                error: 'Error al obtener reserva'
-            });
+    findById = catchAsync(async (req, res) => {
+        const reservation = await ReservationService.findById(req.params.id);
+        if (!reservation) {
+            throw new NotFoundError('Reserva');
         }
-    }
+        res.json({
+            success: true,
+            data: reservation
+        });
+    });
 
-    async findByUser(req, res) {
-        try {
-            const { status, upcoming } = req.query;
-            const reservations = await ReservationService.findByUser(req.params.userId, {
-                status,
-                upcoming: upcoming === 'true'
-            });
-            res.json({
-                success: true,
-                data: reservations
-            });
-        } catch (error) {
-            res.status(500).json({
-                success: false,
-                error: 'Error al obtener reservas del usuario'
-            });
-        }
-    }
+    findByUser = catchAsync(async (req, res) => {
+        const { status, upcoming } = req.query;
+        const reservations = await ReservationService.findByUser(req.params.userId, {
+            status,
+            upcoming: upcoming === 'true'
+        });
+        res.json({
+            success: true,
+            data: reservations
+        });
+    });
 
-    async findByResource(req, res) {
-        try {
-            const { startDate, endDate, status } = req.query;
-            const reservations = await ReservationService.findByResource(req.params.resourceId, {
-                startDate: startDate ? new Date(startDate) : undefined,
-                endDate: endDate ? new Date(endDate) : undefined,
-                status
-            });
-            res.json({
-                success: true,
-                data: reservations
-            });
-        } catch (error) {
-            res.status(500).json({
-                success: false,
-                error: 'Error al obtener reservas del recurso'
-            });
-        }
-    }
+    findByResource = catchAsync(async (req, res) => {
+        const { startDate, endDate, status } = req.query;
+        const reservations = await ReservationService.findByResource(req.params.resourceId, {
+            startDate: startDate ? new Date(startDate) : undefined,
+            endDate: endDate ? new Date(endDate) : undefined,
+            status
+        });
+        res.json({
+            success: true,
+            data: reservations
+        });
+    });
 
-    async update(req, res) {
-        try {
-            const reservation = await ReservationService.update(req.params.id, req.body);
-            if (!reservation) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Reserva no encontrada'
-                });
-            }
-            res.json({
-                success: true,
-                data: reservation,
-                message: 'Reserva actualizada exitosamente'
-            });
-        } catch (error) {
-            if (error instanceof ReservationServiceError) {
-                const statusCode = error.code === 'SCHEDULE_CONFLICT' ? 409 : 400;
-                return res.status(statusCode).json({
-                    success: false,
-                    error: error.message,
-                    code: error.code
-                });
-            }
-            logger.error('Error al actualizar reserva:', error);
-            res.status(500).json({
-                success: false,
-                error: 'Error al actualizar reserva'
-            });
+    update = catchAsync(async (req, res) => {
+        const reservation = await ReservationService.update(req.params.id, req.body);
+        if (!reservation) {
+            throw new NotFoundError('Reserva');
         }
-    }
+        res.json({
+            success: true,
+            data: reservation,
+            message: 'Reserva actualizada exitosamente'
+        });
+    });
 
-    async delete(req, res) {
-        try {
-            const deleted = await ReservationService.delete(req.params.id);
-            if (!deleted) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Reserva no encontrada'
-                });
-            }
-            res.json({
-                success: true,
-                message: 'Reserva eliminada exitosamente'
-            });
-        } catch (error) {
-            res.status(500).json({
-                success: false,
-                error: 'Error al eliminar reserva'
-            });
+    delete = catchAsync(async (req, res) => {
+        const deleted = await ReservationService.delete(req.params.id);
+        if (!deleted) {
+            throw new NotFoundError('Reserva');
         }
-    }
+        res.json({
+            success: true,
+            message: 'Reserva eliminada exitosamente'
+        });
+    });
 
-    async cancel(req, res) {
-        try {
-            const reservation = await ReservationService.cancel(
-                req.params.id,
-                req.user.id,
-                req.user.rol
-            );
-            if (!reservation) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Reserva no encontrada'
-                });
-            }
-            res.json({
-                success: true,
-                data: reservation,
-                message: 'Reserva cancelada exitosamente'
-            });
-        } catch (error) {
-            if (error instanceof ReservationServiceError) {
-                const statusCode = error.code === 'FORBIDDEN' ? 403 : 400;
-                return res.status(statusCode).json({
-                    success: false,
-                    error: error.message,
-                    code: error.code
-                });
-            }
-            logger.error('Error al cancelar reserva:', error);
-            res.status(500).json({
-                success: false,
-                error: 'Error al cancelar reserva'
-            });
+    cancel = catchAsync(async (req, res) => {
+        const reservation = await ReservationService.cancel(
+            req.params.id,
+            req.user.id,
+            req.user.rol
+        );
+        if (!reservation) {
+            throw new NotFoundError('Reserva');
         }
-    }
+        res.json({
+            success: true,
+            data: reservation,
+            message: 'Reserva cancelada exitosamente'
+        });
+    });
 
-    async confirm(req, res) {
-        try {
-            const reservation = await ReservationService.confirm(req.params.id);
-            if (!reservation) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Reserva no encontrada'
-                });
-            }
-            res.json({
-                success: true,
-                data: reservation,
-                message: 'Reserva confirmada exitosamente'
-            });
-        } catch (error) {
-            if (error instanceof ReservationServiceError) {
-                return res.status(400).json({
-                    success: false,
-                    error: error.message,
-                    code: error.code
-                });
-            }
-            logger.error('Error al confirmar reserva:', error);
-            res.status(500).json({
-                success: false,
-                error: 'Error al confirmar reserva'
-            });
+    confirm = catchAsync(async (req, res) => {
+        const reservation = await ReservationService.confirm(req.params.id);
+        if (!reservation) {
+            throw new NotFoundError('Reserva');
         }
-    }
+        res.json({
+            success: true,
+            data: reservation,
+            message: 'Reserva confirmada exitosamente'
+        });
+    });
 
-    async restore(req, res) {
-        try {
-            const reservation = await ReservationService.restore(req.params.id);
-            if (!reservation) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Reserva no encontrada'
-                });
-            }
-            res.json({
-                success: true,
-                data: reservation,
-                message: 'Reserva restaurada exitosamente'
-            });
-        } catch (error) {
-            res.status(500).json({
-                success: false,
-                error: 'Error al restaurar reserva'
-            });
+    restore = catchAsync(async (req, res) => {
+        const reservation = await ReservationService.restore(req.params.id);
+        if (!reservation) {
+            throw new NotFoundError('Reserva');
         }
-    }
+        res.json({
+            success: true,
+            data: reservation,
+            message: 'Reserva restaurada exitosamente'
+        });
+    });
 
-    async findToday(req, res) {
-        try {
-            const { resourceId, userId } = req.query;
-            const reservations = await ReservationService.findToday({ resourceId, userId });
-            res.json({
-                success: true,
-                data: reservations
-            });
-        } catch (error) {
-            res.status(500).json({
-                success: false,
-                error: 'Error al obtener reservas de hoy'
-            });
-        }
-    }
+    findToday = catchAsync(async (req, res) => {
+        const { resourceId, userId } = req.query;
+        const reservations = await ReservationService.findToday({ resourceId, userId });
+        res.json({
+            success: true,
+            data: reservations
+        });
+    });
 
-    async getStats(req, res) {
-        try {
-            const { startDate, endDate, resourceId, userId } = req.query;
-            const stats = await ReservationService.getStats({
-                startDate: startDate ? new Date(startDate) : undefined,
-                endDate: endDate ? new Date(endDate) : undefined,
-                resourceId,
-                userId
-            });
-            res.json({
-                success: true,
-                data: stats
-            });
-        } catch (error) {
-            res.status(500).json({
-                success: false,
-                error: 'Error al obtener estadísticas'
-            });
-        }
-    }
+    getStats = catchAsync(async (req, res) => {
+        const { startDate, endDate, resourceId, userId } = req.query;
+        const stats = await ReservationService.getStats({
+            startDate: startDate ? new Date(startDate) : undefined,
+            endDate: endDate ? new Date(endDate) : undefined,
+            resourceId,
+            userId
+        });
+        res.json({
+            success: true,
+            data: stats
+        });
+    });
 }
 
 module.exports = new ReservationController();

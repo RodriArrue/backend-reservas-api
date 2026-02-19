@@ -12,6 +12,8 @@ const hpp = require('hpp');
 const routes = require('./routes');
 const { globalLimiter } = require('./middlewares');
 const { xssSanitizer, noSqlSanitizer } = require('./middlewares/sanitizerMiddleware');
+const errorHandler = require('./middlewares/errorHandler');
+const { NotFoundError } = require('./utils/errors');
 const logger = require('./utils/logger');
 
 const app = express();
@@ -53,13 +55,13 @@ app.get('/', (req, res) => {
 // Rutas de la API
 app.use('/api', routes);
 
-// Error handler para tests
-app.use((err, req, res, next) => {
-    logger.error('Unhandled error:', err);
-    res.status(500).json({
-        success: false,
-        error: err.message
-    });
+// 404 para rutas no encontradas
+app.use((req, res, next) => {
+    next(new NotFoundError(`Ruta ${req.originalUrl}`));
 });
 
+// Error handler centralizado
+app.use(errorHandler);
+
 module.exports = app;
+
