@@ -1,6 +1,7 @@
 const { AuthService, AuthServiceError, AUTH_ERROR_CODES, CONFIG } = require('../services/AuthService');
 const { UserServiceError, ERROR_CODES } = require('../services/UserService');
 const { AuditService } = require('../services');
+const logger = require('../utils/logger');
 
 class AuthController {
     /**
@@ -46,7 +47,7 @@ class AuthController {
                     code: error.code
                 });
             }
-            console.error('Error en registro:', error);
+            logger.error('Error en registro:', error);
             res.status(500).json({
                 success: false,
                 error: 'Error interno del servidor'
@@ -99,7 +100,7 @@ class AuthController {
                     code: error.code
                 });
             }
-            console.error('Error en login:', error);
+            logger.error('Error en login:', error);
             res.status(500).json({
                 success: false,
                 error: 'Error interno del servidor'
@@ -146,7 +147,7 @@ class AuthController {
                     code: error.code
                 });
             }
-            console.error('Error en refresh:', error);
+            logger.error('Error en refresh:', error);
             res.status(500).json({
                 success: false,
                 error: 'Error interno del servidor'
@@ -171,7 +172,7 @@ class AuthController {
                 message: 'Sesión cerrada exitosamente'
             });
         } catch (error) {
-            console.error('Error en logout:', error);
+            logger.error('Error en logout:', error);
             res.status(500).json({
                 success: false,
                 error: 'Error interno del servidor'
@@ -192,7 +193,7 @@ class AuthController {
                 message: 'Todas las sesiones han sido cerradas'
             });
         } catch (error) {
-            console.error('Error en logout-all:', error);
+            logger.error('Error en logout-all:', error);
             res.status(500).json({
                 success: false,
                 error: 'Error interno del servidor'
@@ -211,7 +212,7 @@ class AuthController {
                 data: req.user
             });
         } catch (error) {
-            console.error('Error obteniendo perfil:', error);
+            logger.error('Error obteniendo perfil:', error);
             res.status(500).json({
                 success: false,
                 error: 'Error interno del servidor'

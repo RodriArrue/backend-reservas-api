@@ -7,29 +7,27 @@
  */
 
 const { sequelize } = require('../models');
+const logger = require('../utils/logger');
 
 const force = process.argv.includes('--force');
 
 async function syncDatabase() {
     try {
-        console.log(' Conectando a la base de datos...');
+        logger.info('Conectando a la base de datos...');
 
         await sequelize.authenticate();
-        console.log(' Conexión establecida correctamente.');
+        logger.info('Conexión establecida correctamente');
 
-        console.log(` Sincronizando modelos${force ? ' (FORCE: eliminando datos existentes)' : ''}...`);
+        logger.info(`Sincronizando modelos${force ? ' (FORCE: eliminando datos existentes)' : ''}...`);
 
         await sequelize.sync({ alter: !force, force });
 
-        console.log(' Modelos sincronizados correctamente.');
-        console.log('\n Tablas creadas:');
-        console.log('   - users');
-        console.log('   - resources');
-        console.log('   - reservations');
+        logger.info('Modelos sincronizados correctamente');
+        logger.info('Tablas creadas: users, resources, reservations');
 
         process.exit(0);
     } catch (error) {
-        console.error(' Error al sincronizar la base de datos:', error.message);
+        logger.error('Error al sincronizar la base de datos:', error);
         process.exit(1);
     }
 }

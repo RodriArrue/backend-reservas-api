@@ -5,6 +5,7 @@
 
 const { AuditLog, User } = require('../models');
 const { Op } = require('sequelize');
+const logger = require('../utils/logger');
 
 class AuditService {
     /**
@@ -42,7 +43,7 @@ class AuditService {
             return auditLog;
         } catch (error) {
             // No lanzar error para no interrumpir la operación principal
-            console.error('Error al registrar audit log:', error.message);
+            logger.error('Error al registrar audit log:', error);
             return null;
         }
     }

@@ -1,4 +1,5 @@
 require('dotenv').config();
+const logger = require('../utils/logger');
 
 const baseConfig = {
     database: process.env.DB_NAME || 'reservas_db',
@@ -7,7 +8,7 @@ const baseConfig = {
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
     dialect: 'postgres',
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    logging: process.env.NODE_ENV === 'development' ? (msg) => logger.debug(msg) : false,
     pool: {
         max: 10,
         min: 0,
@@ -21,7 +22,7 @@ module.exports = {
     ...baseConfig,
     development: {
         ...baseConfig,
-        logging: console.log
+        logging: (msg) => logger.debug(msg)
     },
     test: {
         ...baseConfig,
