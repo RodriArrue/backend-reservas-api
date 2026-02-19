@@ -1,4 +1,5 @@
 const { AuthService, AuthServiceError } = require('../services/AuthService');
+const logger = require('../utils/logger');
 
 /**
  * Middleware de autenticación JWT
@@ -47,7 +48,7 @@ const authMiddleware = async (req, res, next) => {
                 code: error.code
             });
         }
-        console.error('Error en authMiddleware:', error);
+        logger.error('Error en authMiddleware:', error);
         res.status(500).json({
             success: false,
             error: 'Error interno del servidor'

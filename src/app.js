@@ -12,6 +12,7 @@ const hpp = require('hpp');
 const routes = require('./routes');
 const { globalLimiter } = require('./middlewares');
 const { xssSanitizer, noSqlSanitizer } = require('./middlewares/sanitizerMiddleware');
+const logger = require('./utils/logger');
 
 const app = express();
 
@@ -54,7 +55,7 @@ app.use('/api', routes);
 
 // Error handler para tests
 app.use((err, req, res, next) => {
-    console.error('Error:', err);
+    logger.error('Unhandled error:', err);
     res.status(500).json({
         success: false,
         error: err.message

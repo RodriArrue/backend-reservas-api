@@ -7,6 +7,7 @@ const { sequelize } = require('./models');
 const routes = require('./routes');
 const { globalLimiter } = require('./middlewares');
 const { xssSanitizer, noSqlSanitizer } = require('./middlewares/sanitizerMiddleware');
+const logger = require('./utils/logger');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -51,13 +52,13 @@ async function startServer() {
     try {
         // Verificar conexión a la base de datos
         await sequelize.authenticate();
-        console.log('Conexión a la base de datos establecida.');
+        logger.info('Conexión a la base de datos establecida');
 
         app.listen(PORT, () => {
-            console.log(`Servidor corriendo en http://localhost:${PORT}`);
+            logger.info(`Servidor corriendo en http://localhost:${PORT}`);
         });
     } catch (error) {
-        console.error('Error al iniciar el servidor:', error.message);
+        logger.error('Error al iniciar el servidor:', error);
         process.exit(1);
     }
 }

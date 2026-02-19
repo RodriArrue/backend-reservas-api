@@ -1,4 +1,5 @@
 const { ReservationService, ReservationServiceError } = require('../services');
+const logger = require('../utils/logger');
 
 class ReservationController {
     async create(req, res) {
@@ -19,7 +20,7 @@ class ReservationController {
                     code: error.code
                 });
             }
-            console.error('Error al crear reserva:', error);
+            logger.error('Error al crear reserva:', error);
             res.status(500).json({
                 success: false,
                 error: 'Error al crear reserva'
@@ -134,7 +135,7 @@ class ReservationController {
                     code: error.code
                 });
             }
-            console.error('Error al actualizar reserva:', error);
+            logger.error('Error al actualizar reserva:', error);
             res.status(500).json({
                 success: false,
                 error: 'Error al actualizar reserva'
@@ -190,7 +191,7 @@ class ReservationController {
                     code: error.code
                 });
             }
-            console.error('Error al cancelar reserva:', error);
+            logger.error('Error al cancelar reserva:', error);
             res.status(500).json({
                 success: false,
                 error: 'Error al cancelar reserva'
@@ -220,7 +221,7 @@ class ReservationController {
                     code: error.code
                 });
             }
-            console.error('Error al confirmar reserva:', error);
+            logger.error('Error al confirmar reserva:', error);
             res.status(500).json({
                 success: false,
                 error: 'Error al confirmar reserva'
