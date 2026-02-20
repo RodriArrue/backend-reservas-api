@@ -8,6 +8,7 @@ const routes = require('./routes');
 const { globalLimiter } = require('./middlewares');
 const { xssSanitizer, noSqlSanitizer } = require('./middlewares/sanitizerMiddleware');
 const logger = require('./utils/logger');
+const validateEnv = require('./config/validateEnv');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,6 +51,11 @@ app.use('/api', routes);
 // Iniciar servidor
 async function startServer() {
     try {
+        // Validar variables de entorno
+        if (!validateEnv()) {
+            process.exit(1);
+        }
+
         // Verificar conexión a la base de datos
         await sequelize.authenticate();
         logger.info('Conexión a la base de datos establecida');
