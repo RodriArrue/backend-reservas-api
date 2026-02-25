@@ -25,6 +25,8 @@ const Reservation = require('./Reservation')(sequelize);
 const AuditLog = require('./AuditLog')(sequelize);
 const RefreshToken = require('./RefreshToken')(sequelize);
 const TokenBlacklist = require('./TokenBlacklist')(sequelize);
+const Role = require('./Role')(sequelize);
+const Permission = require('./Permission')(sequelize);
 
 // Objeto con todos los modelos
 const models = {
@@ -33,7 +35,9 @@ const models = {
     Reservation,
     AuditLog,
     RefreshToken,
-    TokenBlacklist
+    TokenBlacklist,
+    Role,
+    Permission
 };
 
 // Ejecutar asociaciones

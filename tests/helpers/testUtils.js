@@ -12,7 +12,7 @@ const generateTestToken = (userData = {}) => {
     const defaultUser = {
         id: crypto.randomUUID(),
         email: 'test@example.com',
-        rol: 'USER',
+        username: 'testuser',
         jti: crypto.randomBytes(16).toString('hex')
     };
 
@@ -27,10 +27,11 @@ const generateTestToken = (userData = {}) => {
  */
 const generateTestUser = (overrides = {}) => ({
     id: crypto.randomUUID(),
-    nombre: 'Usuario Test',
+    username: 'testuser',
     email: `test_${Date.now()}@example.com`,
     password: 'Test123!@#',
-    rol: 'USER',
+    firstName: 'Usuario',
+    lastName: 'Test',
     activo: true,
     ...overrides
 });
@@ -96,7 +97,7 @@ const cleanDatabase = async () => {
     await sequelize.query('SET session_replication_role = replica;');
 
     // Limpiar tablas en orden
-    const tables = ['audit_logs', 'token_blacklist', 'refresh_tokens', 'reservations', 'resources', 'users'];
+    const tables = ['audit_logs', 'token_blacklist', 'refresh_tokens', 'reservations', 'resources', 'user_roles', 'role_permissions', 'roles', 'permissions', 'users'];
     for (const table of tables) {
         try {
             await sequelize.query(`TRUNCATE TABLE ${table} CASCADE;`);

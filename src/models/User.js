@@ -7,13 +7,13 @@ module.exports = (sequelize) => {
             defaultValue: DataTypes.UUIDV4,
             primaryKey: true
         },
-        nombre: {
-            type: DataTypes.STRING(100),
+        username: {
+            type: DataTypes.STRING(50),
             allowNull: false,
+            unique: true,
             validate: {
-                notEmpty: true,
-                len: [2, 100]
-            }
+                len: [3, 50],
+            },
         },
         email: {
             type: DataTypes.STRING(255),
@@ -32,10 +32,15 @@ module.exports = (sequelize) => {
                 len: [6, 255]
             }
         },
-        rol: {
-            type: DataTypes.ENUM('ADMIN', 'USER'),
-            defaultValue: 'USER',
-            allowNull: false
+        firstName: {
+            type: DataTypes.STRING(50),
+            allowNull: true,
+            field: 'first_name',
+        },
+        lastName: {
+            type: DataTypes.STRING(50),
+            allowNull: true,
+            field: 'last_name',
         },
         activo: {
             type: DataTypes.BOOLEAN,
@@ -80,7 +85,11 @@ module.exports = (sequelize) => {
                 }
             },
             {
-                fields: ['rol']
+                unique: true,
+                fields: ['username'],
+                where: {
+                    deletedAt: null
+                }
             },
             {
                 fields: ['activo']
@@ -95,6 +104,14 @@ module.exports = (sequelize) => {
         User.hasMany(models.Reservation, {
             foreignKey: 'user_id',
             as: 'reservations'
+        });
+
+        // Un usuario puede tener muchos roles (Many-to-Many)
+        User.belongsToMany(models.Role, {
+            through: 'user_roles',
+            foreignKey: 'user_id',
+            otherKey: 'role_id',
+            as: 'roles',
         });
     };
 
