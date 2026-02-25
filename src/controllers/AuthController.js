@@ -1,8 +1,5 @@
-const { AuthService, AuthServiceError, AUTH_ERROR_CODES, CONFIG } = require('../services/AuthService');
-const { UserServiceError, ERROR_CODES } = require('../services/UserService');
-const { AuditService } = require('../services');
+const { AuthService } = require('../services/AuthService');
 const catchAsync = require('../utils/catchAsync');
-const { ValidationError } = require('../utils/errors');
 
 class AuthController {
     /**
@@ -20,13 +17,12 @@ class AuthController {
      * Registrar un nuevo usuario
      */
     register = catchAsync(async (req, res) => {
-        const { nombre, email, password, rol } = req.body;
+        const { username, email, password, firstName, lastName } = req.body;
         const requestInfo = this.getRequestInfo(req);
 
-        const result = await AuthService.register({ nombre, email, password, rol }, requestInfo);
-
-        // Log de auditoría
-        await AuditService.logCreate(result.user.id, 'USER', result.user.id, { nombre, email, rol }, req);
+        const result = await AuthService.register({
+            username, email, password, firstName, lastName
+        }, requestInfo);
 
         res.status(201).json({
             success: true,
@@ -48,29 +44,18 @@ class AuthController {
         const { email, password } = req.body;
         const requestInfo = this.getRequestInfo(req);
 
-        try {
-            const result = await AuthService.login(email, password, requestInfo);
+        const result = await AuthService.login(email, password, requestInfo);
 
-            // Log de auditoría
-            await AuditService.logLogin(result.user.id, req);
-
-            res.json({
-                success: true,
-                data: {
-                    user: result.user,
-                    accessToken: result.accessToken,
-                    refreshToken: result.refreshToken,
-                    expiresAt: result.expiresAt
-                },
-                message: 'Login exitoso'
-            });
-        } catch (error) {
-            // Log de intento fallido antes de re-lanzar
-            if (error.code === ERROR_CODES.INVALID_CREDENTIALS) {
-                await AuditService.logLoginFailed(req.body.email, req, error.message);
-            }
-            throw error;
-        }
+        res.json({
+            success: true,
+            data: {
+                user: result.user,
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
+                expiresAt: result.expiresAt
+            },
+            message: 'Login exitoso'
+        });
     });
 
     /**
@@ -81,7 +66,10 @@ class AuthController {
         const { refreshToken } = req.body;
 
         if (!refreshToken) {
-            throw new ValidationError('Refresh token requerido', 'REFRESH_TOKEN_MISSING');
+            return res.status(400).json({
+                success: false,
+                error: 'Refresh token requerido'
+            });
         }
 
         const requestInfo = this.getRequestInfo(req);
@@ -133,9 +121,29 @@ class AuthController {
      * Obtener perfil del usuario autenticado
      */
     me = catchAsync(async (req, res) => {
+        const user = await AuthService.getUserById(req.user.id);
+
         res.json({
             success: true,
-            data: req.user
+            data: user
+        });
+    });
+
+    /**
+     * PATCH /api/auth/change-password
+     * Cambiar contraseña del usuario autenticado
+     */
+    changePassword = catchAsync(async (req, res) => {
+        const { currentPassword, newPassword } = req.body;
+
+        const result = await AuthService.changePassword(req.user.id, {
+            currentPassword,
+            newPassword,
+        });
+
+        res.json({
+            success: true,
+            message: result.message,
         });
     });
 }

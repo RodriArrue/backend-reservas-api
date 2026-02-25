@@ -1,110 +1,159 @@
-const { UserService, UserServiceError, ERROR_CODES } = require('../services');
-const catchAsync = require('../utils/catchAsync');
-const { NotFoundError } = require('../utils/errors');
+const { UserService } = require('../services');
 
 class UserController {
-    create = catchAsync(async (req, res) => {
-        const user = await UserService.create(req.body);
-        res.status(201).json({
-            success: true,
-            data: user,
-            message: 'Usuario creado exitosamente'
-        });
-    });
+    create = async (req, res, next) => {
+        try {
+            const { username, email, password, firstName, lastName, roleIds } = req.body;
 
-    findAll = catchAsync(async (req, res) => {
-        const { page, limit, rol, activo, search } = req.query;
-        const result = await UserService.findAll({
-            page: parseInt(page) || 1,
-            limit: parseInt(limit) || 10,
-            rol,
-            activo: activo !== undefined ? activo === 'true' : undefined,
-            search
-        });
-        res.json({
-            success: true,
-            data: result
-        });
-    });
+            const user = await UserService.create({
+                username,
+                email,
+                password,
+                firstName,
+                lastName,
+                roleIds,
+            });
 
-    findById = catchAsync(async (req, res) => {
-        const user = await UserService.findById(req.params.id);
-        if (!user) {
-            throw new NotFoundError('Usuario');
+            res.status(201).json({
+                success: true,
+                message: 'Usuario creado correctamente',
+                data: user,
+            });
+        } catch (error) {
+            next(error);
         }
-        res.json({
-            success: true,
-            data: user
-        });
-    });
+    };
 
-    update = catchAsync(async (req, res) => {
-        const user = await UserService.update(req.params.id, req.body);
-        if (!user) {
-            throw new NotFoundError('Usuario');
+    findAll = async (req, res, next) => {
+        try {
+            const { page, limit, activo, search, includeInactive } = req.query;
+
+            const result = await UserService.findAll({
+                page: parseInt(page) || 1,
+                limit: parseInt(limit) || 10,
+                activo: activo !== undefined ? activo === 'true' : undefined,
+                includeInactive: includeInactive === 'true',
+                search
+            });
+
+            res.json({
+                success: true,
+                data: result.users,
+                pagination: result.pagination,
+            });
+        } catch (error) {
+            next(error);
         }
-        res.json({
-            success: true,
-            data: user,
-            message: 'Usuario actualizado exitosamente'
-        });
-    });
+    };
 
-    delete = catchAsync(async (req, res) => {
-        await UserService.delete(req.params.id);
-        res.json({
-            success: true,
-            message: 'Usuario eliminado exitosamente'
-        });
-    });
-
-    restore = catchAsync(async (req, res) => {
-        const user = await UserService.restore(req.params.id);
-        if (!user) {
-            throw new NotFoundError('Usuario');
+    findById = async (req, res, next) => {
+        try {
+            const user = await UserService.findById(req.params.id);
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Usuario no encontrado',
+                });
+            }
+            res.json({
+                success: true,
+                data: user
+            });
+        } catch (error) {
+            next(error);
         }
-        res.json({
-            success: true,
-            data: user,
-            message: 'Usuario restaurado exitosamente'
-        });
-    });
+    };
 
-    login = catchAsync(async (req, res) => {
-        const { email, password } = req.body;
-        const user = await UserService.verifyCredentials(email, password);
-        res.json({
-            success: true,
-            data: user,
-            message: 'Login exitoso'
-        });
-    });
+    update = async (req, res, next) => {
+        try {
+            const { username, email, firstName, lastName } = req.body;
 
-    toggleActive = catchAsync(async (req, res) => {
-        const { activo } = req.body;
-        const user = await UserService.toggleActive(req.params.id, activo);
-        if (!user) {
-            throw new NotFoundError('Usuario');
+            const user = await UserService.update(req.params.id, {
+                username,
+                email,
+                firstName,
+                lastName,
+            });
+
+            res.json({
+                success: true,
+                data: user,
+                message: 'Usuario actualizado exitosamente'
+            });
+        } catch (error) {
+            next(error);
         }
-        res.json({
-            success: true,
-            data: user,
-            message: `Usuario ${activo ? 'activado' : 'desactivado'} exitosamente`
-        });
-    });
+    };
 
-    changeRole = catchAsync(async (req, res) => {
-        const { rol } = req.body;
-        const user = await UserService.changeRole(req.params.id, rol);
-        if (!user) {
-            throw new NotFoundError('Usuario');
+    delete = async (req, res, next) => {
+        try {
+            await UserService.delete(req.params.id);
+            res.json({
+                success: true,
+                message: 'Usuario eliminado exitosamente'
+            });
+        } catch (error) {
+            next(error);
         }
-        res.json({
-            success: true,
-            data: user,
-            message: 'Rol actualizado exitosamente'
-        });
-    });
+    };
+
+    restore = async (req, res, next) => {
+        try {
+            const user = await UserService.restore(req.params.id);
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Usuario no encontrado',
+                });
+            }
+            res.json({
+                success: true,
+                data: user,
+                message: 'Usuario restaurado exitosamente'
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    deactivate = async (req, res, next) => {
+        try {
+            const currentUserId = req.user.id;
+            const result = await UserService.deactivateUser(req.params.id, currentUserId);
+
+            res.json({
+                success: true,
+                message: result.message,
+                data: {
+                    id: result.id,
+                    username: result.username,
+                    email: result.email,
+                    activo: result.activo,
+                },
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    reactivate = async (req, res, next) => {
+        try {
+            const result = await UserService.reactivateUser(req.params.id);
+
+            res.json({
+                success: true,
+                message: result.message,
+                data: {
+                    id: result.id,
+                    username: result.username,
+                    email: result.email,
+                    activo: result.activo,
+                },
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
 }
 
 module.exports = new UserController();

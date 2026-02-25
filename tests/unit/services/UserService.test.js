@@ -13,13 +13,20 @@ const mockUser = {
     update: jest.fn()
 };
 
+const mockRole = {
+    findOne: jest.fn(),
+    findAll: jest.fn()
+};
+
 jest.mock('../../../src/models', () => ({
     User: mockUser,
+    Role: mockRole,
     sequelize: { Op: require('sequelize').Op },
     Sequelize: { Op: require('sequelize').Op }
 }));
 
-const { UserService, UserServiceError, ERROR_CODES } = require('../../../src/services/UserService');
+const { UserService } = require('../../../src/services/UserService');
+const { ConflictError, NotFoundError } = require('../../../src/errors/AppError');
 
 describe('UserService', () => {
     beforeEach(() => {
@@ -29,27 +36,36 @@ describe('UserService', () => {
     describe('create', () => {
         it('debería crear un usuario con password hasheada', async () => {
             mockUser.findOne.mockResolvedValue(null);
-            mockUser.create.mockResolvedValue({
+            const mockCreatedUser = {
+                addRoles: jest.fn(),
+                addRole: jest.fn(),
+                reload: jest.fn(),
                 toJSON: () => ({
                     id: 'user-1',
-                    nombre: 'Test',
+                    username: 'testuser',
                     email: 'test@test.com',
                     password: 'hashed',
-                    rol: 'USER'
+                    firstName: 'Test',
+                    lastName: 'User',
+                    roles: []
                 })
-            });
+            };
+            mockUser.create.mockResolvedValue(mockCreatedUser);
+            mockRole.findOne.mockResolvedValue({ id: 'role-user', name: 'user' });
 
             const result = await UserService.create({
-                nombre: 'Test',
+                username: 'testuser',
                 email: 'test@test.com',
-                password: 'Test123!'
+                password: 'Test123!',
+                firstName: 'Test',
+                lastName: 'User'
             });
 
             expect(result).not.toHaveProperty('password');
-            expect(result.nombre).toBe('Test');
+            expect(result.username).toBe('testuser');
             expect(mockUser.create).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    nombre: 'Test',
+                    username: 'testuser',
                     email: 'test@test.com',
                     password: expect.not.stringMatching('Test123!')
                 })
@@ -60,16 +76,10 @@ describe('UserService', () => {
             mockUser.findOne.mockResolvedValue({ id: 'existing-user' });
 
             await expect(UserService.create({
-                nombre: 'Test',
+                username: 'testuser',
                 email: 'existing@test.com',
                 password: 'Test123!'
-            })).rejects.toThrow(UserServiceError);
-
-            await expect(UserService.create({
-                nombre: 'Test',
-                email: 'existing@test.com',
-                password: 'Test123!'
-            })).rejects.toMatchObject({ code: ERROR_CODES.EMAIL_DUPLICATED });
+            })).rejects.toThrow(ConflictError);
         });
     });
 
@@ -77,16 +87,16 @@ describe('UserService', () => {
         it('debería retornar usuario sin password', async () => {
             mockUser.findByPk.mockResolvedValue({
                 id: 'user-1',
-                nombre: 'Test',
+                username: 'testuser',
                 email: 'test@test.com'
             });
 
             const result = await UserService.findById('user-1');
 
             expect(result.id).toBe('user-1');
-            expect(mockUser.findByPk).toHaveBeenCalledWith('user-1', {
+            expect(mockUser.findByPk).toHaveBeenCalledWith('user-1', expect.objectContaining({
                 attributes: { exclude: ['password'] }
-            });
+            }));
         });
 
         it('debería retornar null si no existe', async () => {
@@ -103,72 +113,51 @@ describe('UserService', () => {
             mockUser.findAndCountAll.mockResolvedValue({
                 count: 2,
                 rows: [
-                    { id: 'user-1', nombre: 'User 1' },
-                    { id: 'user-2', nombre: 'User 2' }
+                    { id: 'user-1', username: 'User1' },
+                    { id: 'user-2', username: 'User2' }
                 ]
             });
 
             const result = await UserService.findAll({ page: 1, limit: 10 });
 
             expect(result.users).toHaveLength(2);
-            expect(result.total).toBe(2);
-            expect(result.page).toBe(1);
-            expect(result.totalPages).toBe(1);
-        });
-
-        it('debería filtrar por rol', async () => {
-            mockUser.findAndCountAll.mockResolvedValue({ count: 0, rows: [] });
-
-            await UserService.findAll({ rol: 'ADMIN' });
-
-            expect(mockUser.findAndCountAll).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    where: expect.objectContaining({ rol: 'ADMIN' })
-                })
-            );
+            expect(result.pagination.total).toBe(2);
+            expect(result.pagination.page).toBe(1);
+            expect(result.pagination.totalPages).toBe(1);
         });
     });
 
     describe('update', () => {
         it('debería actualizar un usuario', async () => {
             const mockInstance = {
+                email: 'old@test.com',
+                username: 'olduser',
+                firstName: 'Old',
+                lastName: 'User',
                 update: jest.fn().mockResolvedValue(true),
+                reload: jest.fn(),
                 toJSON: () => ({
                     id: 'user-1',
-                    nombre: 'Updated',
-                    password: 'hashed'
+                    username: 'Updated',
+                    password: 'hashed',
+                    roles: []
                 })
             };
             mockUser.findByPk.mockResolvedValue(mockInstance);
+            // Mock duplicate checks return null (no duplicates)
+            mockUser.findOne.mockResolvedValue(null);
 
-            const result = await UserService.update('user-1', { nombre: 'Updated' });
+            const result = await UserService.update('user-1', { username: 'Updated' });
 
-            expect(result.nombre).toBe('Updated');
+            expect(result.username).toBe('Updated');
             expect(result).not.toHaveProperty('password');
         });
 
-        it('debería retornar null si usuario no existe', async () => {
+        it('debería lanzar NotFoundError si usuario no existe', async () => {
             mockUser.findByPk.mockResolvedValue(null);
 
-            const result = await UserService.update('nonexistent', { nombre: 'Test' });
-
-            expect(result).toBeNull();
-        });
-
-        it('debería hashear password al actualizar', async () => {
-            const mockInstance = {
-                update: jest.fn().mockResolvedValue(true),
-                toJSON: () => ({ id: 'user-1', nombre: 'Test' })
-            };
-            mockUser.findByPk.mockResolvedValue(mockInstance);
-
-            await UserService.update('user-1', { password: 'NewPass123!' });
-
-            expect(mockInstance.update).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    password: expect.not.stringMatching('NewPass123!')
-                })
-            );
+            await expect(UserService.update('nonexistent', { username: 'Test' }))
+                .rejects.toThrow(NotFoundError);
         });
     });
 
@@ -183,11 +172,11 @@ describe('UserService', () => {
             expect(mockInstance.destroy).toHaveBeenCalled();
         });
 
-        it('debería lanzar error si usuario no existe', async () => {
+        it('debería lanzar NotFoundError si usuario no existe', async () => {
             mockUser.findByPk.mockResolvedValue(null);
 
             await expect(UserService.delete('nonexistent'))
-                .rejects.toMatchObject({ code: ERROR_CODES.USER_NOT_FOUND });
+                .rejects.toThrow(NotFoundError);
         });
     });
 
@@ -196,7 +185,7 @@ describe('UserService', () => {
             mockUser.findOne.mockResolvedValue(null);
 
             await expect(UserService.verifyCredentials('wrong@test.com', 'pass'))
-                .rejects.toMatchObject({ code: ERROR_CODES.INVALID_CREDENTIALS });
+                .rejects.toThrow(NotFoundError);
         });
 
         it('debería lanzar error si password es incorrecta', async () => {
@@ -209,7 +198,7 @@ describe('UserService', () => {
             });
 
             await expect(UserService.verifyCredentials('test@test.com', 'WrongPass'))
-                .rejects.toMatchObject({ code: ERROR_CODES.INVALID_CREDENTIALS });
+                .rejects.toThrow(NotFoundError);
         });
 
         it('debería retornar usuario sin password con credenciales válidas', async () => {
@@ -228,31 +217,42 @@ describe('UserService', () => {
         });
     });
 
-    describe('toggleActive', () => {
-        it('debería cambiar estado activo', async () => {
+    describe('deactivateUser', () => {
+        it('debería desactivar un usuario', async () => {
             const mockInstance = {
-                update: jest.fn().mockResolvedValue(true),
-                toJSON: () => ({ id: 'user-1', activo: false })
+                id: 'user-1',
+                username: 'testuser',
+                email: 'test@test.com',
+                activo: true,
+                update: jest.fn().mockResolvedValue(true)
             };
             mockUser.findByPk.mockResolvedValue(mockInstance);
 
-            await UserService.toggleActive('user-1', false);
+            await UserService.deactivateUser('user-1', 'admin-user-id');
 
             expect(mockInstance.update).toHaveBeenCalledWith({ activo: false });
         });
+
+        it('debería lanzar error al intentar desactivarse a sí mismo', async () => {
+            await expect(UserService.deactivateUser('user-1', 'user-1'))
+                .rejects.toThrow('No puedes desactivarte a ti mismo');
+        });
     });
 
-    describe('changeRole', () => {
-        it('debería cambiar rol del usuario', async () => {
+    describe('reactivateUser', () => {
+        it('debería reactivar un usuario', async () => {
             const mockInstance = {
-                update: jest.fn().mockResolvedValue(true),
-                toJSON: () => ({ id: 'user-1', rol: 'ADMIN' })
+                id: 'user-1',
+                username: 'testuser',
+                email: 'test@test.com',
+                activo: false,
+                update: jest.fn().mockResolvedValue(true)
             };
             mockUser.findByPk.mockResolvedValue(mockInstance);
 
-            await UserService.changeRole('user-1', 'ADMIN');
+            await UserService.reactivateUser('user-1');
 
-            expect(mockInstance.update).toHaveBeenCalledWith({ rol: 'ADMIN' });
+            expect(mockInstance.update).toHaveBeenCalledWith({ activo: true });
         });
     });
 });

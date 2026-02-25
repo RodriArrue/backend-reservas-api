@@ -1,22 +1,7 @@
 const bcrypt = require('bcrypt');
-const { User } = require('../models');
+const { User, Role } = require('../models');
 const { Op } = require('sequelize');
-
-// Errores personalizados
-class UserServiceError extends Error {
-    constructor(message, code) {
-        super(message);
-        this.name = 'UserServiceError';
-        this.code = code;
-    }
-}
-
-const ERROR_CODES = {
-    EMAIL_DUPLICATED: 'EMAIL_DUPLICATED',
-    USER_NOT_FOUND: 'USER_NOT_FOUND',
-    INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
-    VALIDATION_ERROR: 'VALIDATION_ERROR'
-};
+const { NotFoundError, ConflictError, BadRequestError } = require('../errors/AppError');
 
 class UserService {
     /**
@@ -26,16 +11,23 @@ class UserService {
      */
     async create(userData) {
         // Verificar si el email ya existe
-        const existingUser = await User.findOne({
+        const existingEmail = await User.findOne({
             where: { email: userData.email },
-            paranoid: false // Incluir usuarios eliminados
+            paranoid: false
         });
 
-        if (existingUser) {
-            throw new UserServiceError(
-                'El email ya está registrado',
-                ERROR_CODES.EMAIL_DUPLICATED
-            );
+        if (existingEmail) {
+            throw new ConflictError('El email ya está registrado');
+        }
+
+        // Verificar si el username ya existe
+        const existingUsername = await User.findOne({
+            where: { username: userData.username },
+            paranoid: false
+        });
+
+        if (existingUsername) {
+            throw new ConflictError('El nombre de usuario ya está en uso');
         }
 
         // Hashear la contraseña
@@ -43,14 +35,36 @@ class UserService {
         const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
 
         const user = await User.create({
-            ...userData,
-            password: hashedPassword
+            username: userData.username,
+            email: userData.email,
+            password: hashedPassword,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
         });
 
-        // Retornar usuario sin la contraseña
-        const userJson = user.toJSON();
-        delete userJson.password;
-        return userJson;
+        // Asignar roles
+        if (userData.roleIds && userData.roleIds.length > 0) {
+            const roles = await Role.findAll({
+                where: { id: userData.roleIds },
+            });
+            await user.addRoles(roles);
+        } else {
+            const defaultRole = await Role.findOne({ where: { name: 'user' } });
+            if (defaultRole) {
+                await user.addRole(defaultRole);
+            }
+        }
+
+        // Recargar con roles
+        await user.reload({
+            include: [{
+                model: Role,
+                as: 'roles',
+                through: { attributes: [] },
+            }],
+        });
+
+        return this.sanitizeUser(user);
     }
 
     /**
@@ -59,28 +73,33 @@ class UserService {
      * @returns {Promise<{users: User[], total: number}>}
      */
     async findAll(options = {}) {
-        const { page = 1, limit = 10, rol, activo, search } = options;
+        const { page = 1, limit = 10, activo, search, includeInactive = false } = options;
         const offset = (page - 1) * limit;
 
         const where = {};
 
-        if (rol) {
-            where.rol = rol;
-        }
-
-        if (activo !== undefined) {
+        if (!includeInactive) {
+            where.activo = true;
+        } else if (activo !== undefined) {
             where.activo = activo;
         }
 
         if (search) {
             where[Op.or] = [
-                { nombre: { [Op.iLike]: `%${search}%` } },
-                { email: { [Op.iLike]: `%${search}%` } }
+                { username: { [Op.iLike]: `%${search}%` } },
+                { email: { [Op.iLike]: `%${search}%` } },
+                { firstName: { [Op.iLike]: `%${search}%` } },
+                { lastName: { [Op.iLike]: `%${search}%` } },
             ];
         }
 
         const { count, rows } = await User.findAndCountAll({
             where,
+            include: [{
+                model: Role,
+                as: 'roles',
+                through: { attributes: [] },
+            }],
             limit,
             offset,
             attributes: { exclude: ['password'] },
@@ -89,9 +108,12 @@ class UserService {
 
         return {
             users: rows,
-            total: count,
-            page,
-            totalPages: Math.ceil(count / limit)
+            pagination: {
+                total: count,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(count / limit),
+            },
         };
     }
 
@@ -102,6 +124,11 @@ class UserService {
      */
     async findById(id) {
         const user = await User.findByPk(id, {
+            include: [{
+                model: Role,
+                as: 'roles',
+                through: { attributes: [] },
+            }],
             attributes: { exclude: ['password'] }
         });
         return user;
@@ -115,6 +142,11 @@ class UserService {
     async findByEmail(email) {
         const user = await User.findOne({
             where: { email },
+            include: [{
+                model: Role,
+                as: 'roles',
+                through: { attributes: [] },
+            }],
             attributes: { exclude: ['password'] }
         });
         return user;
@@ -128,7 +160,12 @@ class UserService {
      */
     async _findByEmailWithPassword(email) {
         const user = await User.findOne({
-            where: { email }
+            where: { email },
+            include: [{
+                model: Role,
+                as: 'roles',
+                through: { attributes: [] },
+            }],
         });
         return user;
     }
@@ -143,40 +180,130 @@ class UserService {
         const user = await User.findByPk(id);
 
         if (!user) {
-            return null;
+            throw new NotFoundError('Usuario no encontrado');
+        }
+
+        // Verificar duplicados de email
+        if (updateData.email && updateData.email !== user.email) {
+            const existingEmail = await User.findOne({
+                where: { email: updateData.email },
+                paranoid: false,
+            });
+            if (existingEmail) {
+                throw new ConflictError('El email ya está registrado');
+            }
+        }
+
+        // Verificar duplicados de username
+        if (updateData.username && updateData.username !== user.username) {
+            const existingUsername = await User.findOne({
+                where: { username: updateData.username },
+                paranoid: false,
+            });
+            if (existingUsername) {
+                throw new ConflictError('El nombre de usuario ya está en uso');
+            }
         }
 
         // Si se está actualizando la contraseña, hashearla
         if (updateData.password) {
             const saltRounds = 10;
             updateData.password = await bcrypt.hash(updateData.password, saltRounds);
+            updateData.password_changed_at = new Date();
         }
 
-        await user.update(updateData);
+        await user.update({
+            username: updateData.username ?? user.username,
+            email: updateData.email ?? user.email,
+            firstName: updateData.firstName !== undefined ? updateData.firstName : user.firstName,
+            lastName: updateData.lastName !== undefined ? updateData.lastName : user.lastName,
+            ...(updateData.password ? { password: updateData.password, password_changed_at: updateData.password_changed_at } : {}),
+        });
 
-        const userJson = user.toJSON();
-        delete userJson.password;
-        return userJson;
+        await user.reload({
+            include: [{
+                model: Role,
+                as: 'roles',
+                through: { attributes: [] },
+            }],
+        });
+
+        return this.sanitizeUser(user);
     }
 
     /**
      * Desactivar un usuario (soft delete mediante paranoid de Sequelize)
      * @param {string} id - ID del usuario
      * @returns {Promise<boolean>}
-     * @throws {UserServiceError} Si el usuario no existe
      */
     async delete(id) {
         const user = await User.findByPk(id);
 
         if (!user) {
-            throw new UserServiceError(
-                'Usuario no encontrado',
-                ERROR_CODES.USER_NOT_FOUND
-            );
+            throw new NotFoundError('Usuario no encontrado');
         }
 
         await user.destroy(); // Sequelize paranoid = soft delete
         return true;
+    }
+
+    /**
+     * Desactivar usuario (cambiar activo a false)
+     * @param {string} id - ID del usuario
+     * @param {string} currentUserId - ID del usuario actual
+     * @returns {Promise<Object>}
+     */
+    async deactivateUser(id, currentUserId) {
+        if (id === currentUserId) {
+            throw new BadRequestError('No puedes desactivarte a ti mismo');
+        }
+
+        const user = await User.findByPk(id);
+
+        if (!user) {
+            throw new NotFoundError('Usuario no encontrado');
+        }
+
+        if (!user.activo) {
+            throw new BadRequestError('El usuario ya está desactivado');
+        }
+
+        await user.update({ activo: false });
+
+        return {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            activo: user.activo,
+            message: 'Usuario desactivado correctamente',
+        };
+    }
+
+    /**
+     * Reactivar usuario
+     * @param {string} id - ID del usuario
+     * @returns {Promise<Object>}
+     */
+    async reactivateUser(id) {
+        const user = await User.findByPk(id);
+
+        if (!user) {
+            throw new NotFoundError('Usuario no encontrado');
+        }
+
+        if (user.activo) {
+            throw new BadRequestError('El usuario ya está activo');
+        }
+
+        await user.update({ activo: true });
+
+        return {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            activo: user.activo,
+            message: 'Usuario reactivado correctamente',
+        };
     }
 
     /**
@@ -193,9 +320,7 @@ class UserService {
 
         await user.restore();
 
-        const userJson = user.toJSON();
-        delete userJson.password;
-        return userJson;
+        return this.sanitizeUser(user);
     }
 
     /**
@@ -203,55 +328,33 @@ class UserService {
      * @param {string} email - Email del usuario
      * @param {string} password - Contraseña a verificar
      * @returns {Promise<User|null>}
-     * @throws {UserServiceError} Si las credenciales son inválidas
      */
     async verifyCredentials(email, password) {
         const user = await this._findByEmailWithPassword(email);
 
         if (!user) {
-            throw new UserServiceError(
-                'Credenciales inválidas',
-                ERROR_CODES.INVALID_CREDENTIALS
-            );
+            throw new NotFoundError('Credenciales inválidas');
         }
 
         const isValid = await bcrypt.compare(password, user.password);
 
         if (!isValid) {
-            throw new UserServiceError(
-                'Credenciales inválidas',
-                ERROR_CODES.INVALID_CREDENTIALS
-            );
+            throw new NotFoundError('Credenciales inválidas');
         }
 
+        return this.sanitizeUser(user);
+    }
+
+    /**
+     * Remover campos sensibles del usuario
+     */
+    sanitizeUser(user) {
         const userJson = user.toJSON();
         delete userJson.password;
         return userJson;
-    }
-
-    /**
-     * Cambiar el estado activo de un usuario
-     * @param {string} id - ID del usuario
-     * @param {boolean} activo - Nuevo estado
-     * @returns {Promise<User|null>}
-     */
-    async toggleActive(id, activo) {
-        return this.update(id, { activo });
-    }
-
-    /**
-     * Cambiar el rol de un usuario
-     * @param {string} id - ID del usuario
-     * @param {string} rol - Nuevo rol
-     * @returns {Promise<User|null>}
-     */
-    async changeRole(id, rol) {
-        return this.update(id, { rol });
     }
 }
 
 module.exports = {
     UserService: new UserService(),
-    UserServiceError,
-    ERROR_CODES
 };

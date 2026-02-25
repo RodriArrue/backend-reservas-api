@@ -1,8 +1,9 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { Op } = require('sequelize');
-const { UserService, UserServiceError, ERROR_CODES } = require('./UserService');
-const { User, RefreshToken, TokenBlacklist } = require('../models');
+const bcrypt = require('bcrypt');
+const { UserService } = require('./UserService');
+const { User, Role, RefreshToken, TokenBlacklist } = require('../models');
+const { UnauthorizedError, NotFoundError } = require('../errors/AppError');
 
 // Errores personalizados para Auth
 class AuthServiceError extends Error {
@@ -58,7 +59,7 @@ class AuthService {
         const payload = {
             id: user.id,
             email: user.email,
-            rol: user.rol,
+            username: user.username,
             jti
         };
 
@@ -128,7 +129,7 @@ class AuthService {
     /**
      * Verificar cuenta bloqueada
      */
-    async checkAccountLockout(user) {
+    checkAccountLockout(user) {
         if (user.locked_until && new Date(user.locked_until) > new Date()) {
             const remainingMinutes = Math.ceil((new Date(user.locked_until) - new Date()) / 60000);
             throw new AuthServiceError(
@@ -172,14 +173,16 @@ class AuthService {
      */
     async register(userData, requestInfo = {}) {
         const user = await UserService.create({
-            nombre: userData.nombre,
+            username: userData.username,
             email: userData.email,
             password: userData.password,
-            rol: userData.rol || 'USER'
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            roleIds: userData.roleIds,
         });
 
         const { token: accessToken, jti, expiresAt: accessExpiresAt } = this.generateAccessToken(user);
-        const { token: refreshToken, expiresAt: refreshExpiresAt } = await this.generateRefreshToken(user, jti, requestInfo);
+        const { token: refreshToken } = await this.generateRefreshToken(user, jti, requestInfo);
 
         return {
             user,
@@ -196,18 +199,22 @@ class AuthService {
         // Buscar usuario (incluyendo bloqueados)
         const user = await User.findOne({
             where: { email, activo: true },
+            include: [{
+                model: Role,
+                as: 'roles',
+                through: { attributes: [] },
+            }],
             attributes: { include: ['password', 'failed_login_attempts', 'locked_until'] }
         });
 
         if (!user) {
-            throw new UserServiceError('Credenciales inválidas', ERROR_CODES.INVALID_CREDENTIALS);
+            throw new UnauthorizedError('Credenciales inválidas');
         }
 
         // Verificar bloqueo
         await this.checkAccountLockout(user);
 
         // Verificar contraseña
-        const bcrypt = require('bcrypt');
         const isValid = await bcrypt.compare(password, user.password);
 
         if (!isValid) {
@@ -215,9 +222,8 @@ class AuthService {
             const remaining = CONFIG.MAX_LOGIN_ATTEMPTS - attempts;
 
             if (remaining > 0) {
-                throw new UserServiceError(
-                    `Credenciales inválidas. Te quedan ${remaining} intento(s)`,
-                    ERROR_CODES.INVALID_CREDENTIALS
+                throw new UnauthorizedError(
+                    `Credenciales inválidas. Te quedan ${remaining} intento(s)`
                 );
             } else {
                 throw new AuthServiceError(
@@ -232,7 +238,7 @@ class AuthService {
 
         // Generar tokens
         const { token: accessToken, jti, expiresAt: accessExpiresAt } = this.generateAccessToken(user);
-        const { token: refreshToken, expiresAt: refreshExpiresAt } = await this.generateRefreshToken(user, jti, requestInfo);
+        const { token: refreshToken } = await this.generateRefreshToken(user, jti, requestInfo);
 
         // Limpiar datos sensibles
         const userResponse = user.toJSON();
@@ -254,7 +260,15 @@ class AuthService {
     async refresh(refreshTokenValue, requestInfo = {}) {
         const refreshTokenRecord = await RefreshToken.findOne({
             where: { token: refreshTokenValue },
-            include: [{ model: User, as: 'user' }]
+            include: [{
+                model: User,
+                as: 'user',
+                include: [{
+                    model: Role,
+                    as: 'roles',
+                    through: { attributes: [] },
+                }],
+            }]
         });
 
         if (!refreshTokenRecord) {
@@ -279,7 +293,7 @@ class AuthService {
 
         // Generar nuevos tokens
         const { token: accessToken, jti, expiresAt: accessExpiresAt } = this.generateAccessToken(user);
-        const { token: newRefreshToken, expiresAt: refreshExpiresAt } = await this.generateRefreshToken(user, jti, requestInfo);
+        const { token: newRefreshToken } = await this.generateRefreshToken(user, jti, requestInfo);
 
         return {
             accessToken,
@@ -318,17 +332,40 @@ class AuthService {
     /**
      * Logout de todas las sesiones
      */
-    async logoutAll(userId, reason = 'LOGOUT') {
+    async logoutAll(userId) {
         // Revocar todos los refresh tokens del usuario
         await RefreshToken.update(
             { revoked: true, revoked_at: new Date() },
             { where: { user_id: userId, revoked: false } }
         );
 
-        // Los access tokens activos expirarán naturalmente (15min)
-        // O podríamos añadir todos los JTIs activos a blacklist
-
         return true;
+    }
+
+    /**
+     * Cambiar contraseña del usuario autenticado
+     */
+    async changePassword(userId, { currentPassword, newPassword }) {
+        const user = await User.findByPk(userId);
+
+        if (!user) {
+            throw new NotFoundError('Usuario no encontrado');
+        }
+
+        const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+        if (!isValidPassword) {
+            throw new UnauthorizedError('La contraseña actual es incorrecta');
+        }
+
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+        await user.update({
+            password: hashedPassword,
+            password_changed_at: new Date()
+        });
+
+        return { message: 'Contraseña actualizada correctamente' };
     }
 
     /**
@@ -354,6 +391,28 @@ class AuthService {
         }
 
         return user;
+    }
+
+    /**
+     * Obtener usuario por ID (sin contraseña, con roles)
+     */
+    async getUserById(id) {
+        const user = await User.findByPk(id, {
+            include: [{
+                model: Role,
+                as: 'roles',
+                through: { attributes: [] },
+            }],
+            attributes: { exclude: ['password'] },
+        });
+
+        if (!user) {
+            throw new NotFoundError('Usuario no encontrado');
+        }
+
+        const userJson = user.toJSON();
+        delete userJson.password;
+        return userJson;
     }
 
     // Compatibilidad con código existente
