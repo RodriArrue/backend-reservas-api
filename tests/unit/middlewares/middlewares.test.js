@@ -8,7 +8,14 @@ const { generateTestToken } = require('../../helpers/testUtils');
 // Mock de modelos
 jest.mock('../../../src/models', () => ({
     User: { findOne: jest.fn(), findByPk: jest.fn() },
-    RefreshToken: { create: jest.fn(), findOne: jest.fn(), update: jest.fn() },
+    Role: {},
+    Permission: {},
+    RefreshToken: {
+        create: jest.fn(),
+        findOne: jest.fn(),
+        update: jest.fn(),
+        generateToken: () => 'mock_refresh_token_123'
+    },
     TokenBlacklist: {
         create: jest.fn(),
         isBlacklisted: jest.fn().mockResolvedValue(false)
@@ -57,7 +64,7 @@ describe('Middlewares', () => {
         });
 
         it('debería procesar token válido sin errores de parsing', async () => {
-            const token = generateTestToken({ id: 'user-123', rol: 'USER' });
+            const token = generateTestToken({ id: 'user-123', username: 'testuser' });
             req.headers.authorization = `Bearer ${token}`;
 
             await authMiddleware(req, res, next);
@@ -85,7 +92,7 @@ describe('Middlewares', () => {
             const jwt = require('jsonwebtoken');
             const secret = process.env.JWT_SECRET || 'test_jwt_secret';
             const expiredToken = jwt.sign(
-                { id: 'user-1', email: 'test@test.com', rol: 'USER', jti: 'test-jti' },
+                { id: 'user-1', email: 'test@test.com', username: 'testuser', jti: 'test-jti' },
                 secret,
                 { expiresIn: '0s' }
             );
@@ -106,63 +113,82 @@ describe('Middlewares', () => {
     // ──────────────────────────────────
     describe('roleMiddleware', () => {
         const { requireRole, requireAdmin, requireUser } = require('../../../src/middlewares/roleMiddleware');
+        const { User } = require('../../../src/models');
 
-        it('requireAdmin debería permitir al ADMIN', () => {
-            req.user = { rol: 'ADMIN' };
+        it('requireAdmin debería permitir al admin', async () => {
+            req.user = { id: 'user-1' };
+            User.findByPk.mockResolvedValue({
+                roles: [{ name: 'admin' }]
+            });
 
-            requireAdmin(req, res, next);
+            await requireAdmin(req, res, next);
 
             expect(next).toHaveBeenCalled();
         });
 
-        it('requireAdmin debería bloquear al USER', () => {
-            req.user = { rol: 'USER' };
+        it('requireAdmin debería bloquear al user', async () => {
+            req.user = { id: 'user-1' };
+            User.findByPk.mockResolvedValue({
+                roles: [{ name: 'user' }]
+            });
 
-            requireAdmin(req, res, next);
+            await requireAdmin(req, res, next);
 
             expect(res.status).toHaveBeenCalledWith(403);
             expect(next).not.toHaveBeenCalled();
         });
 
-        it('requireUser debería permitir al USER', () => {
-            req.user = { rol: 'USER' };
+        it('requireUser debería permitir al user', async () => {
+            req.user = { id: 'user-1' };
+            User.findByPk.mockResolvedValue({
+                roles: [{ name: 'user' }]
+            });
 
-            requireUser(req, res, next);
-
-            expect(next).toHaveBeenCalled();
-        });
-
-        it('requireUser debería permitir al ADMIN también', () => {
-            req.user = { rol: 'ADMIN' };
-
-            requireUser(req, res, next);
+            await requireUser(req, res, next);
 
             expect(next).toHaveBeenCalled();
         });
 
-        it('requireRole debería aceptar múltiples roles', () => {
-            const middleware = requireRole('ADMIN', 'USER');
-            req.user = { rol: 'USER' };
+        it('requireUser debería permitir al admin también', async () => {
+            req.user = { id: 'user-1' };
+            User.findByPk.mockResolvedValue({
+                roles: [{ name: 'admin' }]
+            });
 
-            middleware(req, res, next);
+            await requireUser(req, res, next);
 
             expect(next).toHaveBeenCalled();
         });
 
-        it('requireRole debería rechazar rol no autorizado', () => {
-            const middleware = requireRole('ADMIN');
-            req.user = { rol: 'USER' };
+        it('requireRole debería aceptar múltiples roles', async () => {
+            const middleware = requireRole('admin', 'user');
+            req.user = { id: 'user-1' };
+            User.findByPk.mockResolvedValue({
+                roles: [{ name: 'user' }]
+            });
 
-            middleware(req, res, next);
+            await middleware(req, res, next);
+
+            expect(next).toHaveBeenCalled();
+        });
+
+        it('requireRole debería rechazar rol no autorizado', async () => {
+            const middleware = requireRole('admin');
+            req.user = { id: 'user-1' };
+            User.findByPk.mockResolvedValue({
+                roles: [{ name: 'user' }]
+            });
+
+            await middleware(req, res, next);
 
             expect(res.status).toHaveBeenCalledWith(403);
             expect(next).not.toHaveBeenCalled();
         });
 
-        it('debería manejar usuario no autenticado', () => {
+        it('debería manejar usuario no autenticado', async () => {
             req.user = null;
 
-            requireAdmin(req, res, next);
+            await requireAdmin(req, res, next);
 
             // Puede ser 401 o 403 dependiendo de la implementación
             expect(res.status).toHaveBeenCalled();

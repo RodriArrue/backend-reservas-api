@@ -1,70 +1,35 @@
 const express = require('express');
 const router = express.Router();
-const { UserController } = require('../controllers');
-const { authMiddleware, requireAdmin, csrfMiddleware } = require('../middlewares');
+const UserController = require('../controllers/UserController');
+const authMiddleware = require('../middlewares/authMiddleware');
+const { requirePermission } = require('../middlewares/roleMiddleware');
+const { validate } = require('../middlewares/validate');
+const { uuidParamSchema, createUserSchema, getUsersQuerySchema, updateUserSchema } = require('../validators/user.schema');
+const { csrfMiddleware } = require('../middlewares/csrfMiddleware');
 
-/**
- * @route   POST /api/users
- * @desc    Crear un nuevo usuario (requiere ADMIN, CSRF)
- * @access  Privado - Solo ADMIN
- */
-router.post('/', authMiddleware, requireAdmin, csrfMiddleware, UserController.create);
+// Todas las rutas requieren autenticación
+router.use(authMiddleware);
 
-/**
- * @route   GET /api/users
- * @desc    Obtener todos los usuarios (con paginación y filtros)
- * @query   page, limit, rol, activo, search
- * @access  Privado - Requiere autenticación
- */
-router.get('/', authMiddleware, UserController.findAll);
+// Rutas de lectura (requieren permiso 'read' sobre 'users')
+router.get('/', requirePermission('users', 'read'), validate({ query: getUsersQuerySchema }), UserController.findAll);
+router.get('/:id', requirePermission('users', 'read'), validate({ params: uuidParamSchema }), UserController.findById);
 
-/**
- * @route   GET /api/users/:id
- * @desc    Obtener un usuario por ID
- * @access  Privado - Requiere autenticación
- */
-router.get('/:id', authMiddleware, UserController.findById);
+// Crear usuario (requiere permiso 'create' sobre 'users' + CSRF)
+router.post('/', csrfMiddleware, requirePermission('users', 'create'), validate({ body: createUserSchema }), UserController.create);
 
-/**
- * @route   PUT /api/users/:id
- * @desc    Actualizar un usuario (requiere ADMIN, CSRF)
- * @access  Privado - Solo ADMIN
- */
-router.put('/:id', authMiddleware, requireAdmin, csrfMiddleware, UserController.update);
+// Actualizar usuario (requiere permiso 'update' sobre 'users' + CSRF)
+router.put('/:id', csrfMiddleware, requirePermission('users', 'update'), validate({ params: uuidParamSchema, body: updateUserSchema }), UserController.update);
 
-/**
- * @route   DELETE /api/users/:id
- * @desc    Eliminar un usuario (soft delete, requiere ADMIN, CSRF)
- * @access  Privado - Solo ADMIN
- */
-router.delete('/:id', authMiddleware, requireAdmin, csrfMiddleware, UserController.delete);
+// Eliminar usuario (soft delete, requiere permiso 'delete' sobre 'users' + CSRF)
+router.delete('/:id', csrfMiddleware, requirePermission('users', 'delete'), validate({ params: uuidParamSchema }), UserController.delete);
 
-/**
- * @route   POST /api/users/:id/restore
- * @desc    Restaurar un usuario eliminado (requiere ADMIN, CSRF)
- * @access  Privado - Solo ADMIN
- */
-router.post('/:id/restore', authMiddleware, requireAdmin, csrfMiddleware, UserController.restore);
+// Restaurar usuario eliminado (requiere permiso 'update' sobre 'users' + CSRF)
+router.patch('/:id/restore', csrfMiddleware, requirePermission('users', 'update'), validate({ params: uuidParamSchema }), UserController.restore);
 
-/**
- * @route   POST /api/users/login
- * @desc    Login de usuario (deprecado, usar /api/auth/login)
- * @access  Público
- */
-router.post('/login', UserController.login);
+// Desactivar usuario (requiere permiso 'delete' sobre 'users' + CSRF)
+router.patch('/:id/deactivate', csrfMiddleware, requirePermission('users', 'delete'), validate({ params: uuidParamSchema }), UserController.deactivate);
 
-/**
- * @route   PATCH /api/users/:id/toggle-active
- * @desc    Activar/Desactivar un usuario (requiere ADMIN, CSRF)
- * @access  Privado - Solo ADMIN
- */
-router.patch('/:id/toggle-active', authMiddleware, requireAdmin, csrfMiddleware, UserController.toggleActive);
-
-/**
- * @route   PATCH /api/users/:id/change-role
- * @desc    Cambiar rol de un usuario (requiere ADMIN, CSRF)
- * @access  Privado - Solo ADMIN
- */
-router.patch('/:id/change-role', authMiddleware, requireAdmin, csrfMiddleware, UserController.changeRole);
+// Reactivar usuario (requiere permiso 'update' sobre 'users' + CSRF)
+router.patch('/:id/reactivate', csrfMiddleware, requirePermission('users', 'update'), validate({ params: uuidParamSchema }), UserController.reactivate);
 
 module.exports = router;

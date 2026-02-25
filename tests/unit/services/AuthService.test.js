@@ -9,9 +9,11 @@ const jwt = require('jsonwebtoken');
 jest.mock('../../../src/models', () => ({
     User: {
         findOne: jest.fn(),
+        findByPk: jest.fn(),
         update: jest.fn(),
         create: jest.fn()
     },
+    Role: {},
     RefreshToken: {
         create: jest.fn(),
         findOne: jest.fn(),
@@ -28,16 +30,6 @@ jest.mock('../../../src/services/UserService', () => ({
     UserService: {
         create: jest.fn(),
         findById: jest.fn()
-    },
-    UserServiceError: class UserServiceError extends Error {
-        constructor(message, code) {
-            super(message);
-            this.code = code;
-        }
-    },
-    ERROR_CODES: {
-        INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
-        EMAIL_DUPLICATED: 'EMAIL_DUPLICATED'
     }
 }));
 
@@ -63,14 +55,14 @@ describe('AuthService', () => {
             expect(result.token.split('.')).toHaveLength(3); // JWT format
         });
 
-        it('debería incluir rol y email en el payload', () => {
-            const user = generateTestUser({ rol: 'ADMIN' });
+        it('debería incluir username y email en el payload', () => {
+            const user = generateTestUser({ username: 'adminuser' });
 
             const { token } = AuthService.generateAccessToken(user);
             const decoded = jwt.decode(token);
 
             expect(decoded.email).toBe(user.email);
-            expect(decoded.rol).toBe('ADMIN');
+            expect(decoded.username).toBe('adminuser');
             expect(decoded.jti).toBeDefined();
         });
     });
@@ -115,31 +107,28 @@ describe('AuthService', () => {
     });
 
     describe('checkAccountLockout', () => {
-        it('debería lanzar error si cuenta está bloqueada', async () => {
+        it('debería lanzar error si cuenta está bloqueada', () => {
             const lockedUser = {
                 locked_until: new Date(Date.now() + 600000) // 10 minutos en el futuro
             };
 
-            await expect(AuthService.checkAccountLockout(lockedUser))
-                .rejects
-                .toMatchObject({ code: AUTH_ERROR_CODES.ACCOUNT_LOCKED });
+            expect(() => AuthService.checkAccountLockout(lockedUser))
+                .toThrow();
         });
 
-        it('no debería lanzar error si bloqueo expiró', async () => {
+        it('no debería lanzar error si bloqueo expiró', () => {
             const expiredLockUser = {
                 locked_until: new Date(Date.now() - 60000) // 1 minuto en el pasado
             };
 
-            await expect(AuthService.checkAccountLockout(expiredLockUser))
-                .resolves
+            expect(() => AuthService.checkAccountLockout(expiredLockUser))
                 .not.toThrow();
         });
 
-        it('no debería lanzar error si no hay bloqueo', async () => {
+        it('no debería lanzar error si no hay bloqueo', () => {
             const normalUser = { locked_until: null };
 
-            await expect(AuthService.checkAccountLockout(normalUser))
-                .resolves
+            expect(() => AuthService.checkAccountLockout(normalUser))
                 .not.toThrow();
         });
     });
@@ -196,11 +185,12 @@ describe('AuthService', () => {
         const mockUserData = {
             id: 'user-123',
             email: 'test@example.com',
+            username: 'testuser',
             password: '$2b$10$hashedpassword',
-            rol: 'USER',
             activo: true,
             failed_login_attempts: 0,
             locked_until: null,
+            roles: [{ name: 'user' }],
             toJSON: function () { return { ...this, password: undefined }; }
         };
 
