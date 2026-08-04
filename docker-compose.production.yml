@@ -1,0 +1,90 @@
+# ============================================
+# Docker Compose — Producción (AWS EC2)
+# ============================================
+# Uso:
+#   cp .env.production.example .env.production
+#   docker compose -f docker-compose.production.yml --env-file .env.production up -d --build
+#
+# Ver logs:
+#   docker compose -f docker-compose.production.yml logs -f
+#
+# Detener:
+#   docker compose -f docker-compose.production.yml down
+
+services:
+  # ─── Base de datos PostgreSQL ────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: reservas_db_prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+    # ⚠️ No se expone el puerto al exterior (solo accesible por la red interna Docker)
+
+  # ─── API Node.js ─────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: reservas_api_prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health" ]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    networks:
+      - backend
+    # ⚠️ No se expone el puerto al exterior (Nginx hace de proxy)
+
+  # ─── Nginx Reverse Proxy ─────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: reservas_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      # - "443:443"  # Descomentar cuando se configure HTTPS
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # - /etc/letsencrypt:/etc/letsencrypt:ro  # Descomentar para HTTPS
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - backend
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  backend:
+    driver: bridge
