@@ -32,6 +32,9 @@ LABEL description="Sistema de Reservas API"
 
 WORKDIR /app
 
+# Instalar postgresql-client para pg_isready (usado en el entrypoint)
+RUN apk add --no-cache postgresql-client
+
 # Crear usuario no-root para seguridad
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
@@ -42,6 +45,10 @@ COPY --from=production-deps /app/node_modules ./node_modules
 COPY package*.json ./
 COPY .sequelizerc ./
 COPY src/ ./src/
+
+# Copiar entrypoint
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
 
 # Crear directorio de logs
 RUN mkdir -p logs && chown -R appuser:appgroup /app
@@ -59,7 +66,7 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
-CMD ["node", "src/index.js"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
 
 # ========================================
 # Stage 5: Development
