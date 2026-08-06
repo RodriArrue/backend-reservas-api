@@ -68,11 +68,11 @@ while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
         echo "  Health check:      http://localhost/health"
         echo "  Swagger docs:      http://localhost/api-docs"
         echo ""
-        echo "  Ver logs:    docker compose -f $COMPOSE_FILE logs -f"
-        echo "  Detener:     docker compose -f $COMPOSE_FILE down"
-        echo "  Reiniciar:   docker compose -f $COMPOSE_FILE restart"
+        echo "  Ver logs:    docker compose --env-file $ENV_FILE -f $COMPOSE_FILE logs -f"
+        echo "  Detener:     docker compose --env-file $ENV_FILE -f $COMPOSE_FILE down"
+        echo "  Reiniciar:   docker compose --env-file $ENV_FILE -f $COMPOSE_FILE restart"
         echo ""
-        docker compose -f "$COMPOSE_FILE" ps
+        docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
         exit 0
     fi
 
@@ -83,7 +83,7 @@ done
 
 echo ""
 echo "⚠️  Los servicios tardaron más de lo esperado en responder."
-echo "   Revisá los logs: docker compose -f $COMPOSE_FILE logs -f"
+echo "   Revisá los logs: docker compose --env-file $ENV_FILE -f $COMPOSE_FILE logs -f"
 echo ""
-docker compose -f "$COMPOSE_FILE" ps
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
 exit 1
