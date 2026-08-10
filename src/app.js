@@ -20,7 +20,18 @@ const swaggerSpec = require('./config/swagger');
 const app = express();
 
 // Middlewares de seguridad (desactivar rate limiting en tests)
-app.use(helmet());
+app.use(helmet({
+    hsts: false, // Desactivado temporalmente hasta configurar HTTPS
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "validator.swagger.io"],
+            upgradeInsecureRequests: null // Desactivar porque usamos HTTP
+        }
+    }
+}));
 if (process.env.NODE_ENV !== 'test') {
     app.use(globalLimiter);
 }
