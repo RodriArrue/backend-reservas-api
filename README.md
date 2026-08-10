@@ -1,182 +1,174 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js">
-  <img src="https://img.shields.io/badge/Express-5.x-000000?style=for-the-badge&logo=express&logoColor=white" alt="Express">
-  <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL">
-  <img src="https://img.shields.io/badge/Sequelize-6.x-52B0E7?style=for-the-badge&logo=sequelize&logoColor=white" alt="Sequelize">
-  <img src="https://img.shields.io/badge/Jest-Testing-C21325?style=for-the-badge&logo=jest&logoColor=white" alt="Jest">
-</p>
+<div align="center">
 
 # 🗓️ Sistema de Reservas API
 
-API REST robusta y escalable para la gestión de reservas de recursos (salas de reuniones, escritorios, consultorios médicos, etc.). Diseñada con buenas prácticas de desarrollo, seguridad enterprise-grade y arquitectura limpia.
+**API REST robusta y escalable para la gestión de reservas de recursos.**
+
+Diseñada para gestionar salas de reuniones, escritorios, consultorios médicos y cualquier recurso reservable, con seguridad enterprise-grade, arquitectura limpia y despliegue containerizado.
+
+[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-5.x-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Sequelize](https://img.shields.io/badge/Sequelize-6.x-52B0E7?style=flat-square&logo=sequelize&logoColor=white)](https://sequelize.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Jest](https://img.shields.io/badge/Tests-Jest-C21325?style=flat-square&logo=jest&logoColor=white)](https://jestjs.io/)
+[![License](https://img.shields.io/badge/License-ISC-blue?style=flat-square)](LICENSE)
+
+[Inicio Rápido](#-inicio-rápido) · [Documentación API](#-endpoints-de-la-api) · [Despliegue](DEPLOYMENT.md)
+
+</div>
+
+---
 
 ## 📋 Tabla de Contenidos
 
 - [Características](#-características)
 - [Arquitectura](#-arquitectura)
-- [Tecnologías](#-tecnologías)
-- [Requisitos Previos](#-requisitos-previos)
-- [Instalación](#-instalación)
+- [Stack Tecnológico](#-stack-tecnológico)
+- [Inicio Rápido](#-inicio-rápido)
 - [Configuración](#-configuración)
 - [Uso](#-uso)
 - [Endpoints de la API](#-endpoints-de-la-api)
 - [Seguridad](#-seguridad)
 - [Testing](#-testing)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Despliegue](#-despliegue)
 - [Autor](#-autor)
 
 ---
 
 ## ✨ Características
 
+<table>
+<tr>
+<td width="50%">
+
 ### Funcionalidades Principales
-- ✅ **Gestión de Usuarios** - CRUD completo con roles (ADMIN/USER)
-- ✅ **Gestión de Recursos** - Salas, escritorios, consultorios con capacidad y disponibilidad
-- ✅ **Sistema de Reservas** - Creación, modificación, cancelación con validación de conflictos
-- ✅ **Autenticación JWT** - Access tokens + Refresh tokens con rotación segura
-- ✅ **Autorización por Roles** - Permisos diferenciados para administradores y usuarios
+
+- ✅ **Gestión de Usuarios** — CRUD completo con roles `ADMIN` / `USER`
+- ✅ **Gestión de Recursos** — Salas, escritorios, consultorios con capacidad y disponibilidad
+- ✅ **Sistema de Reservas** — Creación, modificación, cancelación con validación de conflictos
+- ✅ **Autenticación JWT** — Access tokens + Refresh tokens con rotación segura
+- ✅ **Autorización por Roles** — Permisos diferenciados por tipo de usuario
+- ✅ **Documentación Swagger** — Interfaz interactiva en `/api-docs`
+
+</td>
+<td width="50%">
 
 ### Seguridad Enterprise
-- 🔒 **Protección CSRF** - Tokens de validación para operaciones críticas
-- 🔒 **Rate Limiting** - Límites de peticiones por IP y endpoint
-- 🔒 **Helmet.js** - Headers de seguridad HTTP
-- 🔒 **Sanitización XSS** - Limpieza de inputs maliciosos
-- 🔒 **Bloqueo de Cuentas** - Protección contra ataques de fuerza bruta
-- 🔒 **Soft Delete** - Eliminación lógica con posibilidad de restauración
 
-### Características Técnicas
-- 📊 **Auditoría** - Registro de acciones críticas del sistema
-- 📄 **Paginación** - Respuestas paginadas para listados grandes
-- 🔍 **Filtros Avanzados** - Búsqueda por múltiples criterios
-- 📈 **Estadísticas** - Métricas de uso y ocupación
-- 🐳 **Docker Ready** - Configuración lista para contenedores
+- 🔒 **Protección CSRF** — Tokens de validación para operaciones de escritura
+- 🔒 **Rate Limiting** — Límites por IP y por endpoint
+- 🔒 **Helmet.js** — Headers de seguridad HTTP
+- 🔒 **Sanitización XSS** — Limpieza automática de inputs maliciosos
+- 🔒 **Bloqueo de Cuentas** — Protección contra fuerza bruta
+- 🔒 **Soft Delete** — Eliminación lógica con restauración
+
+</td>
+</tr>
+</table>
+
+| Característica | Descripción |
+|:---|:---|
+| 📊 **Auditoría** | Registro automático de acciones críticas del sistema |
+| 📄 **Paginación** | Respuestas paginadas para listados extensos |
+| 🔍 **Filtros Avanzados** | Búsqueda por múltiples criterios y tipos de recurso |
+| 📈 **Estadísticas** | Métricas de uso, ocupación y resumen diario |
+| 🐳 **Docker Ready** | Multi-stage Dockerfile + Docker Compose (dev & prod) |
+| 🌐 **Nginx Reverse Proxy** | Configuración lista para producción con soporte HTTPS |
 
 ---
 
 ## 🏗️ Arquitectura
 
-El proyecto sigue una **arquitectura en capas** siguiendo principios de Clean Architecture:
+El proyecto implementa una **arquitectura en capas** con separación clara de responsabilidades:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        ROUTES                                │
-│    Define endpoints y aplica middlewares de validación       │
-├─────────────────────────────────────────────────────────────┤
-│                      CONTROLLERS                             │
-│     Maneja requests/responses HTTP, delega a servicios       │
-├─────────────────────────────────────────────────────────────┤
-│                       SERVICES                               │
-│        Lógica de negocio, validaciones, transacciones        │
-├─────────────────────────────────────────────────────────────┤
-│                        MODELS                                │
-│         Definición de entidades y relaciones (ORM)           │
-├─────────────────────────────────────────────────────────────┤
-│                       DATABASE                               │
-│                     PostgreSQL                               │
-└─────────────────────────────────────────────────────────────┘
+                    ┌──────────────────────────────┐
+                    │       Client / Swagger        │
+                    └──────────────┬───────────────┘
+                                   │
+                    ┌──────────────▼───────────────┐
+                    │    Nginx (Reverse Proxy)      │  ← Producción
+                    └──────────────┬───────────────┘
+                                   │
+┌──────────────────────────────────▼─────────────────────────────┐
+│                        EXPRESS APP                              │
+│                                                                │
+│  Middlewares → Routes → Controllers → Services → Models        │
+│  (Security)   (API)    (HTTP I/O)    (Logic)    (ORM)          │
+│                                                                │
+│  Helmet · CORS · Rate Limit · CSRF · XSS · HPP                │
+└────────────────────────────────┬───────────────────────────────┘
+                                 │
+                    ┌────────────▼────────────────┐
+                    │     PostgreSQL 15 (Docker)   │
+                    └─────────────────────────────┘
 ```
 
 ---
 
-## 🛠️ Tecnologías
+## 🛠️ Stack Tecnológico
 
 | Categoría | Tecnología | Propósito |
-|-----------|------------|-----------|
+|:---|:---|:---|
 | **Runtime** | Node.js 18+ | Entorno de ejecución JavaScript |
 | **Framework** | Express 5.x | Framework web minimalista |
 | **Base de Datos** | PostgreSQL 15 | Base de datos relacional |
-| **ORM** | Sequelize 6.x | Mapeo objeto-relacional |
-| **Autenticación** | JWT | Tokens de acceso seguros |
-| **Seguridad** | Helmet, bcrypt, hpp | Protección de la aplicación |
-| **Validación** | express-validator | Validación de inputs |
-| **Testing** | Jest + Supertest | Tests unitarios e integración |
-| **Contenedores** | Docker Compose | Orquestación de servicios |
+| **ORM** | Sequelize 6.x | Mapeo objeto-relacional + migraciones |
+| **Autenticación** | JWT (jsonwebtoken) | Access + Refresh tokens |
+| **Validación** | express-validator · Zod | Validación y tipado de inputs |
+| **Seguridad** | Helmet · bcrypt · hpp · xss-clean | Protección multicapa |
+| **Documentación** | Swagger (OpenAPI 3.0) | Docs interactivos de la API |
+| **Logging** | Winston | Logging estructurado |
+| **Testing** | Jest · Supertest | Tests unitarios e integración |
+| **Contenedores** | Docker · Docker Compose · Nginx | Orquestación y proxy reverso |
+| **Linting** | ESLint · Prettier | Calidad y formato de código |
 
 ---
 
-## 📦 Requisitos Previos
+## 🚀 Inicio Rápido
 
-Antes de comenzar, asegúrate de tener instalado:
+### Requisitos Previos
 
-- **Node.js** >= 18.0.0
-- **npm** >= 9.0.0
-- **Docker** y **Docker Compose** (para la base de datos)
+- **Node.js** ≥ 18.0.0
+- **Docker** y **Docker Compose**
 - **Git**
 
----
-
-## 🚀 Instalación
-
-### 1. Clonar el Repositorio
+### Instalación
 
 ```bash
+# 1. Clonar el repositorio
 git clone https://github.com/RodriArrue/backend-reservas-api.git
 cd backend-reservas-api
-```
 
-### 2. Instalar Dependencias
-
-```bash
+# 2. Instalar dependencias
 npm install
-```
 
-### 3. Iniciar la Base de Datos
+# 3. Iniciar PostgreSQL en Docker
+docker compose up -d postgres
 
-```bash
-# Levanta PostgreSQL en Docker
-docker-compose up -d
-
-# Verifica que esté corriendo
-docker ps
-```
-
-### 4. Configurar Variables de Entorno
-
-```bash
-# Copia el archivo de ejemplo
+# 4. Configurar variables de entorno
 cp .env.example .env
 
-# Edita con tus valores (opcional, los defaults funcionan con Docker)
-nano .env
+# 5. Ejecutar migraciones y cargar datos de ejemplo
+npm run db:reset
+
+# 6. Iniciar en modo desarrollo (con hot-reload)
+npm run dev
 ```
 
-### 5. Ejecutar Migraciones
-
-```bash
-# Crear todas las tablas con migraciones
-npm run migrate
-
-# Ver estado de las migraciones
-npm run migrate:status
-```
-
-### 6. Cargar Datos de Ejemplo
-
-```bash
-# Insertar datos de prueba (usuarios, recursos, reservas)
-npm run seed
-```
-
-> **Credenciales de prueba creadas:**
-> | Rol | Email | Contraseña |
-> |-----|-------|------------|
-> | ADMIN | `admin@reservas.com` | `Admin123!` |
-> | USER | `maria.garcia@ejemplo.com` | `User123!` |
+El servidor estará disponible en **`http://localhost:3000`**
 
 > [!TIP]
-> Para resetear todo de una vez (migraciones + seeds): `npm run db:reset`
+> La documentación interactiva Swagger está en **`http://localhost:3000/api-docs`**
 
-### 7. Iniciar el Servidor
+### Credenciales de Prueba
 
-```bash
-# Modo desarrollo (con hot-reload)
-npm run dev
-
-# Modo producción
-npm start
-```
-
-El servidor estará disponible en: `http://localhost:3000`
+| Rol | Email | Contraseña |
+|:---|:---|:---|
+| **Admin** | `admin@reservas.com` | `Admin123!` |
+| **User** | `maria.garcia@ejemplo.com` | `User123!` |
 
 ---
 
@@ -184,21 +176,21 @@ El servidor estará disponible en: `http://localhost:3000`
 
 ### Variables de Entorno
 
-Crea un archivo `.env` en la raíz del proyecto:
+Crea un archivo `.env` basado en `.env.example`:
 
 ```env
-# Base de Datos
+# ── Base de Datos ─────────────────────────
 DB_NAME=reservas_db
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_HOST=localhost
 DB_PORT=5433
 
-# Aplicación
+# ── Aplicación ────────────────────────────
 NODE_ENV=development
 PORT=3000
 
-# JWT (⚠️ Cambia en producción)
+# ── JWT (⚠️ Cambiar en producción) ───────
 JWT_SECRET=tu_secreto_super_seguro_aqui
 JWT_EXPIRATION=24h
 REFRESH_TOKEN_SECRET=otro_secreto_para_refresh_tokens
@@ -207,20 +199,20 @@ REFRESH_TOKEN_SECRET=otro_secreto_para_refresh_tokens
 ### Scripts Disponibles
 
 | Comando | Descripción |
-|---------|-------------|
-| `npm start` | Inicia el servidor en producción |
-| `npm run dev` | Inicia con nodemon (hot-reload) |
-| `npm run migrate` | Ejecuta migraciones pendientes |
-| `npm run migrate:undo` | Revierte la última migración |
-| `npm run migrate:undo:all` | Revierte todas las migraciones |
-| `npm run migrate:status` | Estado de las migraciones |
-| `npm run seed` | Carga datos de ejemplo |
-| `npm run seed:undo` | Elimina datos de ejemplo |
-| `npm run db:reset` | Resetea DB completa (migrate + seed) |
-| `npm test` | Ejecuta todos los tests |
+|:---|:---|
+| `npm start` | Servidor en modo producción |
+| `npm run dev` | Servidor con hot-reload (nodemon) |
+| `npm test` | Ejecutar todos los tests |
+| `npm run test:coverage` | Tests con reporte de cobertura |
 | `npm run test:unit` | Solo tests unitarios |
 | `npm run test:integration` | Solo tests de integración |
-| `npm run test:coverage` | Tests con reporte de cobertura |
+| `npm run migrate` | Ejecutar migraciones pendientes |
+| `npm run migrate:undo` | Revertir la última migración |
+| `npm run migrate:status` | Estado de las migraciones |
+| `npm run seed` | Cargar datos de ejemplo |
+| `npm run db:reset` | Resetear DB completa |
+| `npm run lint` | Analizar código con ESLint |
+| `npm run format` | Formatear código con Prettier |
 
 ---
 
@@ -228,23 +220,15 @@ REFRESH_TOKEN_SECRET=otro_secreto_para_refresh_tokens
 
 ### Health Check
 
-Verifica que el servidor esté funcionando:
-
 ```bash
 curl http://localhost:3000/health
+# → { "status": "OK", "timestamp": "2026-01-08T18:00:00.000Z" }
 ```
 
-Respuesta:
-```json
-{
-  "status": "OK",
-  "timestamp": "2026-01-08T18:00:00.000Z"
-}
-```
+### Flujo Básico
 
-### Flujo Básico de Uso
-
-#### 1. Registrar un Usuario
+<details>
+<summary><strong>1 · Registrar un usuario</strong></summary>
 
 ```bash
 curl -X POST http://localhost:3000/api/auth/register \
@@ -255,8 +239,10 @@ curl -X POST http://localhost:3000/api/auth/register \
     "password": "MiPassword123"
   }'
 ```
+</details>
 
-#### 2. Iniciar Sesión
+<details>
+<summary><strong>2 · Iniciar sesión</strong></summary>
 
 ```bash
 curl -X POST http://localhost:3000/api/auth/login \
@@ -267,7 +253,7 @@ curl -X POST http://localhost:3000/api/auth/login \
   }'
 ```
 
-Respuesta (guarda el token):
+Respuesta:
 ```json
 {
   "success": true,
@@ -283,8 +269,10 @@ Respuesta (guarda el token):
   }
 }
 ```
+</details>
 
-#### 3. Crear una Reserva
+<details>
+<summary><strong>3 · Crear una reserva</strong></summary>
 
 ```bash
 curl -X POST http://localhost:3000/api/reservations \
@@ -298,78 +286,82 @@ curl -X POST http://localhost:3000/api/reservations \
     "end_time": "2026-01-10T10:00:00Z"
   }'
 ```
+</details>
 
 ---
 
 ## 🔌 Endpoints de la API
 
-### Autenticación (`/api/auth`)
+> 📘 Documentación interactiva completa en **`/api-docs`** (Swagger UI)
 
-| Método | Endpoint | Descripción | Autenticación |
-|--------|----------|-------------|---------------|
-| `POST` | `/register` | Registrar nuevo usuario | ❌ Público |
-| `POST` | `/login` | Iniciar sesión | ❌ Público |
-| `POST` | `/refresh` | Renovar access token | ❌ Público |
-| `POST` | `/logout` | Cerrar sesión actual | ❌ Público |
-| `POST` | `/logout-all` | Cerrar todas las sesiones | ✅ Requerido |
-| `GET` | `/me` | Obtener perfil actual | ✅ Requerido |
+### Autenticación — `/api/auth`
 
-### Usuarios (`/api/users`)
+| Método | Endpoint | Descripción | Auth |
+|:---:|:---|:---|:---:|
+| `POST` | `/register` | Registrar nuevo usuario | — |
+| `POST` | `/login` | Iniciar sesión | — |
+| `POST` | `/refresh` | Renovar access token | — |
+| `POST` | `/logout` | Cerrar sesión actual | — |
+| `POST` | `/logout-all` | Cerrar todas las sesiones | ✅ |
+| `GET` | `/me` | Obtener perfil actual | ✅ |
 
-| Método | Endpoint | Descripción | Autenticación |
-|--------|----------|-------------|---------------|
-| `GET` | `/` | Listar usuarios | ✅ Requerido |
-| `GET` | `/:id` | Obtener usuario por ID | ✅ Requerido |
-| `POST` | `/` | Crear usuario | ✅ ADMIN + CSRF |
-| `PUT` | `/:id` | Actualizar usuario | ✅ ADMIN + CSRF |
-| `DELETE` | `/:id` | Eliminar usuario (soft) | ✅ ADMIN + CSRF |
-| `POST` | `/:id/restore` | Restaurar usuario | ✅ ADMIN + CSRF |
-| `POST` | `/login` | Login (deprecado) | ❌ Público |
-| `PATCH` | `/:id/toggle-active` | Activar/Desactivar | ✅ ADMIN + CSRF |
-| `PATCH` | `/:id/change-role` | Cambiar rol | ✅ ADMIN + CSRF |
+### Usuarios — `/api/users`
 
-### Recursos (`/api/resources`)
+| Método | Endpoint | Descripción | Auth |
+|:---:|:---|:---|:---:|
+| `GET` | `/` | Listar usuarios (paginado) | ✅ |
+| `GET` | `/:id` | Obtener usuario por ID | ✅ |
+| `POST` | `/` | Crear usuario | 🔑 |
+| `PUT` | `/:id` | Actualizar usuario | 🔑 |
+| `DELETE` | `/:id` | Eliminar usuario (soft delete) | 🔑 |
+| `POST` | `/:id/restore` | Restaurar usuario | 🔑 |
+| `PATCH` | `/:id/toggle-active` | Activar / desactivar | 🔑 |
+| `PATCH` | `/:id/change-role` | Cambiar rol | 🔑 |
 
-| Método | Endpoint | Descripción | Autenticación |
-|--------|----------|-------------|---------------|
-| `GET` | `/` | Listar recursos | ❌ Público |
-| `GET` | `/available` | Recursos disponibles | ❌ Público |
-| `GET` | `/type/:tipo` | Filtrar por tipo | ❌ Público |
-| `GET` | `/:id` | Obtener recurso por ID | ❌ Público |
-| `GET` | `/:id/reservations` | Recurso con reservas | ❌ Público |
-| `POST` | `/` | Crear recurso | ✅ ADMIN + CSRF |
-| `PUT` | `/:id` | Actualizar recurso | ✅ ADMIN + CSRF |
-| `DELETE` | `/:id` | Eliminar recurso | ✅ ADMIN + CSRF |
-| `POST` | `/:id/restore` | Restaurar recurso | ✅ ADMIN + CSRF |
-| `PATCH` | `/:id/toggle-active` | Activar/Desactivar | ✅ ADMIN + CSRF |
+### Recursos — `/api/resources`
 
-### Reservas (`/api/reservations`)
+| Método | Endpoint | Descripción | Auth |
+|:---:|:---|:---|:---:|
+| `GET` | `/` | Listar recursos (paginado) | — |
+| `GET` | `/available` | Recursos disponibles | — |
+| `GET` | `/type/:tipo` | Filtrar por tipo | — |
+| `GET` | `/:id` | Obtener recurso por ID | — |
+| `GET` | `/:id/reservations` | Recurso con sus reservas | — |
+| `POST` | `/` | Crear recurso | 🔑 |
+| `PUT` | `/:id` | Actualizar recurso | 🔑 |
+| `DELETE` | `/:id` | Eliminar recurso (soft delete) | 🔑 |
+| `POST` | `/:id/restore` | Restaurar recurso | 🔑 |
+| `PATCH` | `/:id/toggle-active` | Activar / desactivar | 🔑 |
 
-| Método | Endpoint | Descripción | Autenticación |
-|--------|----------|-------------|---------------|
-| `GET` | `/` | Listar reservas | ❌ Público |
-| `GET` | `/today` | Reservas de hoy | ❌ Público |
-| `GET` | `/stats` | Estadísticas | ❌ Público |
-| `GET` | `/user/:userId` | Reservas de usuario | ❌ Público |
-| `GET` | `/resource/:resourceId` | Reservas de recurso | ❌ Público |
-| `GET` | `/:id` | Obtener por ID | ❌ Público |
-| `POST` | `/` | Crear reserva | ✅ Auth + CSRF |
-| `PUT` | `/:id` | Actualizar reserva | ✅ Auth + CSRF |
-| `DELETE` | `/:id` | Eliminar reserva | ✅ Auth + CSRF |
-| `POST` | `/:id/cancel` | Cancelar reserva | ✅ Auth + CSRF |
-| `POST` | `/:id/confirm` | Confirmar reserva | ✅ Auth + CSRF |
-| `POST` | `/:id/restore` | Restaurar reserva | ✅ Auth + CSRF |
+### Reservas — `/api/reservations`
+
+| Método | Endpoint | Descripción | Auth |
+|:---:|:---|:---|:---:|
+| `GET` | `/` | Listar reservas (paginado) | — |
+| `GET` | `/today` | Reservas del día actual | — |
+| `GET` | `/stats` | Estadísticas de uso | — |
+| `GET` | `/user/:userId` | Reservas de un usuario | — |
+| `GET` | `/resource/:resourceId` | Reservas de un recurso | — |
+| `GET` | `/:id` | Obtener reserva por ID | — |
+| `POST` | `/` | Crear reserva | ✅ CSRF |
+| `PUT` | `/:id` | Actualizar reserva | ✅ CSRF |
+| `DELETE` | `/:id` | Eliminar reserva | ✅ CSRF |
+| `POST` | `/:id/cancel` | Cancelar reserva | ✅ CSRF |
+| `POST` | `/:id/confirm` | Confirmar reserva | ✅ CSRF |
+| `POST` | `/:id/restore` | Restaurar reserva | ✅ CSRF |
+
+> **Leyenda:** — Público · ✅ Token requerido · 🔑 Admin + CSRF
 
 ---
 
 ## 🔐 Seguridad
 
-### Autenticación JWT
+### Autenticación JWT (Doble Token)
 
-El sistema utiliza un esquema de **doble token**:
-
-1. **Access Token** (15 min): Para autenticar peticiones
-2. **Refresh Token** (7 días): Para renovar el access token
+| Token | Duración | Propósito |
+|:---|:---:|:---|
+| **Access Token** | 15 min | Autenticar cada petición |
+| **Refresh Token** | 7 días | Renovar el access token |
 
 ```
 Authorization: Bearer <access_token>
@@ -377,61 +369,54 @@ Authorization: Bearer <access_token>
 
 ### Protección CSRF
 
-Las operaciones de escritura (POST, PUT, DELETE) requieren el header:
+Las operaciones de escritura (`POST`, `PUT`, `DELETE`) requieren el header:
 
 ```
 X-CSRF-Token: <token>
 ```
 
-> **Nota para testing**: En desarrollo, puedes usar `test-csrf-token`
+> [!NOTE]
+> En desarrollo, se puede usar `test-csrf-token` para testing.
 
 ### Rate Limiting
 
 | Tipo | Límite | Ventana |
-|------|--------|---------|
+|:---|:---:|:---:|
 | Global | 100 req | 15 min |
-| Login/Register | 5 req | 15 min |
-| Creación | 10 req | 15 min |
+| Login / Register | 5 req | 15 min |
+| Creación de recursos | 10 req | 15 min |
 
 ### Bloqueo de Cuentas
 
-- Después de **5 intentos fallidos** de login
-- La cuenta se bloquea por **15 minutos**
-- Se resetea automáticamente tras login exitoso
+- **5 intentos fallidos** → cuenta bloqueada por **15 minutos**
+- Se resetea automáticamente tras un login exitoso
 
 ---
 
 ## 🧪 Testing
 
-### Ejecutar Tests
-
 ```bash
-# Todos los tests
-npm test
-
-# Con coverage
-npm run test:coverage
-
-# Solo unitarios
-npm run test:unit
-
-# Solo integración
-npm run test:integration
-
-# Modo watch (desarrollo)
-npm run test:watch
+npm test                    # Todos los tests
+npm run test:coverage       # Con reporte de cobertura
+npm run test:unit           # Solo unitarios
+npm run test:integration    # Solo integración
+npm run test:watch          # Modo watch (desarrollo)
 ```
 
 ### Estructura de Tests
 
 ```
 tests/
-├── helpers/           # Utilidades para tests
-├── integration/       # Tests de API completos
-│   └── *.test.js
-├── unit/              # Tests de servicios/lógica
-│   └── *.test.js
-└── setup.js           # Configuración global
+├── helpers/                # Utilidades y mocks compartidos
+├── integration/            # Tests de API end-to-end
+│   ├── auth.test.js
+│   ├── reservations.test.js
+│   ├── resources.test.js
+│   └── users.test.js
+├── unit/                   # Tests de lógica de negocio
+│   ├── middlewares/
+│   └── services/
+└── setup.js                # Configuración global de Jest
 ```
 
 ---
@@ -439,62 +424,59 @@ tests/
 ## 📁 Estructura del Proyecto
 
 ```
-src/
-├── config/            # Configuración de base de datos
-│   └── database.js
-├── controllers/       # Controladores HTTP
-│   ├── AuthController.js
-│   ├── ReservationController.js
-│   ├── ResourceController.js
-│   └── UserController.js
-├── database/          # Migraciones y datos de ejemplo
-│   ├── migrations/    # Migraciones Sequelize CLI
-│   │   ├── 01-create-users.js
-│   │   ├── 02-create-resources.js
-│   │   ├── 03-create-reservations.js
-│   │   ├── 04-create-audit-logs.js
-│   │   ├── 05-create-refresh-tokens.js
-│   │   └── 06-create-token-blacklist.js
-│   └── seeders/       # Datos de ejemplo
-│       ├── 01-demo-users.js
-│       ├── 02-demo-resources.js
-│       └── 03-demo-reservations.js
-├── middlewares/       # Middlewares Express
-│   ├── authMiddleware.js
-│   ├── csrfMiddleware.js
-│   ├── rateLimitMiddleware.js
-│   ├── roleMiddleware.js
-│   └── sanitizerMiddleware.js
-├── models/            # Modelos Sequelize
-│   ├── AuditLog.js
-│   ├── RefreshToken.js
-│   ├── Reservation.js
-│   ├── Resource.js
-│   ├── TokenBlacklist.js
-│   └── User.js
-├── routes/            # Definición de rutas
-│   ├── authRoutes.js
-│   ├── reservationRoutes.js
-│   ├── resourceRoutes.js
-│   └── userRoutes.js
-├── services/          # Lógica de negocio
-│   ├── AuditService.js
-│   ├── AuthService.js
-│   ├── ReservationService.js
-│   ├── ResourceService.js
-│   └── UserService.js
-├── validators/        # Reglas de validación
-│   └── *.js
-├── app.js             # Configuración Express
-└── index.js           # Entry point
+backend-reservas-api/
+├── src/
+│   ├── config/                 # Configuración (DB, Swagger)
+│   ├── controllers/            # Controladores HTTP
+│   ├── database/
+│   │   ├── migrations/         # Migraciones Sequelize
+│   │   └── seeders/            # Datos de ejemplo
+│   ├── middlewares/            # Middlewares Express
+│   │   ├── authMiddleware.js
+│   │   ├── csrfMiddleware.js
+│   │   ├── rateLimitMiddleware.js
+│   │   ├── roleMiddleware.js
+│   │   └── sanitizerMiddleware.js
+│   ├── models/                 # Modelos Sequelize (ORM)
+│   ├── routes/                 # Definición de rutas
+│   ├── services/               # Lógica de negocio
+│   ├── validators/             # Reglas de validación
+│   ├── utils/                  # Utilidades y errores custom
+│   ├── app.js                  # Configuración de Express
+│   └── index.js                # Entry point
+├── tests/                      # Suite de testing
+├── deploy/                     # Scripts de despliegue
+├── nginx/                      # Configuración Nginx
+├── Dockerfile                  # Multi-stage build
+├── docker-compose.yml          # Orquestación desarrollo
+├── docker-compose.production.yml  # Orquestación producción
+├── DEPLOYMENT.md               # Guía de despliegue AWS
+└── package.json
 ```
+
+---
+
+## 🚢 Despliegue
+
+El proyecto incluye configuración completa para despliegue en **AWS EC2** con Docker:
+
+- **Multi-stage Dockerfile** — Builds optimizados para producción
+- **Docker Compose** — Orquestación de PostgreSQL + API + Nginx
+- **Scripts automatizados** — Setup y deploy con un solo comando
+- **Nginx reverse proxy** — Con configuración preparada para HTTPS
+
+📖 Ver la **[Guía de Despliegue completa →](DEPLOYMENT.md)**
 
 ---
 
 ## 👨‍💻 Autor
 
-**Rodrigo Arrue**
-
-- GitHub: [@RodriArrue](https://github.com/RodriArrue)
+**Rodrigo Arrue** — [@RodriArrue](https://github.com/RodriArrue)
 
 ---
+
+<div align="center">
+
+⭐ Si este proyecto te resulta útil, ¡deja una estrella en el repositorio!
+
+</div>
